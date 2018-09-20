@@ -1,0 +1,49 @@
+{% extends "basis.html" %}
+
+{% load staticfiles %}
+
+{% block nav %}
+    {% include 'nav.html' with active="settings" %}
+{% endblock %}
+
+{% block title %}
+Password change
+{% endblock %}
+
+{% block content %}
+
+<div class="container" style="margin-top: 40px;">
+    <div class="col-sm-8 col-sm-offset-3"><form>
+        <h2 class="form-signin-heading"><i class="fa fa-cog"></i> </i> User settings</h2>
+
+        <h5>Send email notification about new resources:</h5>
+        <div class="btn-group" data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="setting_send_email_new_resource" id="option1" autocomplete="off" checked> No
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="setting_send_email_new_resource" id="option2" autocomplete="off"> Yes
+          </label>
+        </div>
+
+        <h5>Send email notification about new comments:</h5>
+
+        <div class="btn-group" data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="setting_send_email_new_comment" id="option1" autocomplete="off" checked> No
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="setting_send_email_new_comment" id="option2" autocomplete="off"> Yes
+          </label>
+        </div>
+        <br>
+        <button class="btn btn-success col-sm-3" type="submit" style="margin-top: 25px;">Save</button>
+    </form>
+
+
+    {# Assumes you setup the password_reset view in your URLconf #}
+{#    <p><a href="{% url 'password_reset' %}">Lost password?</a></p>#}
+    </div>
+</div>
+
+{% endblock %}

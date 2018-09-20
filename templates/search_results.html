@@ -1,0 +1,136 @@
+{% extends "basis.html" %}
+
+{%  load custom_tags %}
+
+{% block nav %}
+    {% include "nav.html" %}
+{% endblock %}
+
+{% block content %}
+
+    <h2>Search results for "{{query}}":</h2>
+    {% if not discussions and not tasks and not sessions %} 
+        No results found
+    {% endif %}
+
+    {% if discussions or tasks or sessions %}
+        <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+            {% if discussions %}
+                <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingOne" data-toggle="collapse" data-parent="#accordion" data-target="#collapseOne" style="cursor: pointer;">
+                        <h4 class="panel-title">
+                        <a>
+                            <i class="fa fa-comments-o" aria-hidden="true"></i> Discussions - {{ discussions|length }}:
+                        </a>
+                        </h4>
+                    </div>
+                    <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                        <div class="panel-body">
+                            <table class="table table-striped">
+                                <thead class="table table-striped">
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Author</th>
+                                        {% comment "For future if session/course info will be needed" %} <th>Session</th>
+                                        <th>Course</th>{% endcomment %}
+                                        <th>Last Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table table-striped">
+                                    {% for thread in discussions %}
+                                        <tr>
+                                            <td><a href="{% url 'discussions:thread_detail' thread.id %}">{{ thread.subject }}</a></td>
+                                            <td><span style="white-space:nowrap;">{{ thread.author.first_name }} {{ thread.author.last_name }}</span> <br> <small>{{ thread.date_added }}</small></td>
+                                            {% comment "For future if session/course info will be needed" %} <td>{{ thread.session }}</td>
+                                            <td>{{ thread.course.name }}</td>{% endcomment %}
+                                            {% if thread.discussionmessage_set.all %}
+                                                <td><span style="white-space:nowrap;">{{ thread.discussionmessage_set.all.last.author.first_name }} {{ thread.discussionmessage_set.all.last.author.last_name }}</span> <br> <small>{{ thread.discussionmessage_set.all.last.date_added }}</small></td>
+                                            {% else %}
+                                                <td>No messages</td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>    
+                </div>
+            {% endif %}
+
+            {% if sessions %}
+                <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingTwo" data-toggle="collapse" data-parent="#accordion" data-target="#collapseTwo" style="cursor: pointer;">
+                        <h4 class="panel-title">
+                            <a>
+                                <i class="fa fa-university" aria-hidden="true"></i> Sessions - {{ sessions|length }}:
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                        <div class="panel-body">
+                            <table class="table table-striped">
+                                <thead class="table table-striped">
+                                    <tr>
+                                        <th>Session</th>
+                                        <th>Course</th>                                    
+                                        <th>Start time</th>
+                                        <th>Resources</th>
+                                        <th>Hometasks</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table table-striped">
+                                    {% for session in sessions %}
+                                        <tr>
+                                            <td><a href="{% url 'view_session' session.id %}">{{ session.short_description }}</a></td>
+                                            <td><a href="{% url 'view_course' session.course.id %}">{{ session.course.name }}</a></td>                                        
+                                            <td>{{ session.start_time }}</td>
+                                            <td>{{ session.resource_set.all.count }}</td>
+                                            <td>{{ session.task_set.all.count }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>    
+                </div>
+            {% endif %}
+
+            {% if tasks %}
+                <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="headingThree" data-toggle="collapse" data-parent="#accordion" data-target="#collapseThree" style="cursor: pointer;">
+                        <h4 class="panel-title">
+                            <a>
+                                <i class="fa fa-sitemap fa-3"></i> Tasks - {{ tasks|length }}:
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseThree" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingThree">
+                        <div class="panel-body">
+                            <table class="table table-striped">
+                                <thead class="table table-striped">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Solved?</th>
+                                        <th>Comments</th>                                    
+                                    </tr>
+                                </thead>
+                                <tbody class="table table-striped">
+                                    {% for task in tasks %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td><a href="{% url 'view_task' task.id %}">{{ task.name }}</a></td>
+                                            <td>{% task_is_solved_by as solved %}{% if solved %}Solved{% else %}Not solved{% endif %}</td>
+                                            <td>{% comments_number as comments %}{{ comments }} comment{{ comments | pluralize }}</td>                                        
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>    
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+{% endblock %}

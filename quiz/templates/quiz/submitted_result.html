@@ -1,0 +1,90 @@
+{% extends "basis.html" %}
+
+{% load markdown_deux_tags %}
+
+{% load quiz_custom_tags %}
+
+{% block nav %}
+    {% include "nav.html" with active='quiz' %}
+{% endblock %}
+
+{% block head_scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-10">
+                <h2>{{submitted_result.quiz.name}} - {{submitted_result.student.name}}</h2>
+            </div>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    {% if submitted_result.quiz.passed_by_score %}
+                        <th>Total Score</th>
+                    {% endif %}
+                    <th>Total correct answers</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% if submitted_result.passed %}
+                        <td>Passed</td>
+                    {% else %}
+                        <td>Failed</td>
+                    {% endif %}
+                    {% if submitted_result.quiz.passed_by_score %}
+                        <td>{{submitted_result.score}}</td>
+                    {% endif %}
+                    <td>{{submitted_result.questions_passed}}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% if not submitted_result.passed and not is_trainer and submitted_result.quiz.retry_on_fail_enabled %}
+            <div class="row">
+                <a class="btn btn-default" href="{% url 'quiz:quiz_retry' submitted_result.id %}">Retry</a>
+            </div>
+        {% elif submitted_result.passed and not is_trainer and submitted_result.quiz.retry_on_pass_enabled %}
+            <div class="row">
+                <a class="btn btn-default" href="{% url 'quiz:quiz_retry' submitted_result.id %}">Retry</a>
+            </div>
+        {% endif %}
+        {% if is_trainer or submitted_result.quiz.verbose_results_enabled %}
+            <div class="row">
+                <div class="col-sm-10">
+                    <h3>Detailed results:</h3>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-10">
+                    {% for question in questions %}
+                        <div class="panel panel-default">
+                            <div class="panel-body">                               
+                                <div id="content__{{ forloop.counter }}">{{ question.content|safe }}</div>
+                                <script>
+                                  document.getElementById('content__{{ forloop.counter }}').innerHTML =
+                                      marked(document.getElementById('content__{{ forloop.counter }}').innerHTML);
+                                </script>
+                            </div>
+                        {% for answer in question.answer_set.all %}
+                            <div class="panel-footer">
+                                <div class="{% if answer.correct %} has-success {% else %} {% if answer in submitted_result.answers.all %} has-error {% endif %}{% endif %}">
+                                    <div class= {% radio_or_checkbox %}>
+                                        <label>
+                                            <input type= {% radio_or_checkbox %} style="cursor: default" class= {% radio_or_checkbox %} disabled="disabled" {% if answer in submitted_result.answers.all %} checked="checked" {% endif %}>{{ answer.content|safe }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

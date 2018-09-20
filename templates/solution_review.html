@@ -1,0 +1,329 @@
+{% extends "basis.html"  %}
+
+{% load staticfiles %}
+
+{% block nav %}
+    {% include 'nav.html'%}
+{% endblock %}
+
+{% block style %}
+<style type="text/css" media="screen">
+    #editor {
+        height: 300px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Solution {{ object.task.name }}/{{ object.author.name }} {% endblock %}
+
+{% block content %}
+    <h3><a href="{% url 'view_solutions' object.task.id %}" style="margin-right: 20px;"><i class="fa fa-long-arrow-left"></i></a>
+        <span id="big_star" style="display: {% if object.favorited %}inline{% else %}none{% endif %};"><i class="fa fa-star" style="color: #f1d213;" aria-hidden="true"></i></span>
+        Solution of task:
+        <button type="button" class="btn btn-lg btn-info btn-embossed" data-placement="bottom" data-toggle="popover" data-html=true data-content="{{ object.task.content }}">{{ object.task.name }}</button></h3>
+    <h4>Student: {{ object.author.name}} ({{ object.author.user.username }})</h4>
+
+    <h4>Committed: <span id="committed_no" style="display: {% if object.committed %}none{% else %}inline{% endif %};"><i class="fa fa-4 fa-times-circle-o"></i></span>
+        <span id="committed_yes" style="display: {% if object.committed %}inline{% else %}none{% endif %};">{{ object.committed_at }} <a class="btn btn-default btn-sm btn-embossed" href="#" onclick="uncommit()">Uncommit</a></span>
+        <a id="fav_btn" style="display: {% if not object.favorited %}inline{% else %}none{% endif %}" class="btn btn-default btn-sm btn-embossed" href="#" onclick="fav_solution()"><i class="fa fa-star-o" aria-hidden="true"></i> Add to favorite</a>
+        <a id="unfav_btn" style="display: {% if object.favorited %}inline{% else %}none{% endif %}" class="btn btn-default btn-sm btn-embossed" href="#" onclick="unfav_solution()"><i class="fa fa-star" aria-hidden="true"></i> Remove from favorite</a>
+    </h4>
+
+      <!-- Nav tabs -->
+      <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#home" aria-controls="home" role="tab" data-toggle="tab">Review</a></li>
+        <li role="presentation"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Run / Test</a></li>
+      </ul>
+
+      <!-- Tab panes -->
+      <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="home">
+            <!-- REVIEW  TAB --->
+
+            <div class="col-sm-5" style="margin-top: 10px;">
+                <div class="panel panel-info">
+                  <div class="panel-heading">
+                    <i class="fa fa-comments-o"></i>  Overall
+                  </div>
+                  <div class="panel-body">
+                    <ul class="list-group">
+                      {% for comment in object.comment_set.all %}
+                          {% if comment.target_line == -1  and not comment.target_comment %}
+                              <div class="panel-heading"><i class="fa fa-comments-o"></i> {{ comment.author.name }}, {{ comment.created_at }}</div>
+                              <li class="list-group-item info"><div style="white-space: pre-wrap">{{ comment.content}}</div></li>
+                              {% if comment.comment_set.all %}
+                                  {% for comment_on_comment in comment.comment_set.all %}
+                                      <div class="panel-heading"><i class="fa fa-comment"></i> {{ comment_on_comment.author.name }}, {{ comment_on_comment.created_at }}</div>
+                                    <li class="list-group-item list-group-item-{% if comment_on_comment.author_student %}warning{% else %}info{% endif %}">{{ comment_on_comment.content }}</li>
+                                      {% if forloop.last %}
+                                    <!--- REPLY -
+                                      <form action="{% url 'comment_reply' comment.id %}#review" method="post">{% csrf_token %}
+                                        <div class="input-group" style="margin-top: 5px; margin-left: 15px;">
+                                              <span class="input-group-addon"><i class="fa fa-comments-o"></i></span>
+                                              <input type="text" class="form-control" placeholder="Comment" name="comment" >
+                                              <input type="hidden" name="comment_type" value="">
+                                              <input type="hidden" name="target" value="{{ object.id }}">
+                                              <span class="input-group-btn">
+                                                <button class="btn btn-default" type="submit">Reply</button>
+                                              </span>
+                                        </div><!-- /input-group
+                                      </form>-->
+                                  {% endif %}
+                                  {% endfor %}
+                              {% endif %}
+                          {% endif %}
+                      {% endfor %}
+                    </ul>
+                      <textarea class="form-control" rows="3" id="comment_overal"></textarea>
+                  </div>
+                  <div class="panel-footer">
+                      <button class="btn btn-default btn-embossed" onclick="$('#comment').val($('#comment_overal').val()); $('#per_line_comment_form').submit();">Add</button>
+                  </div>
+                </div>
+
+
+                {% for comment in object.comment_set.all %}{% if comment.target_line > 0 %}
+                    <div class="panel panel-info">
+                      <div class="panel-heading">
+                        <i class="fa fa-comment"></i> Line: # {{ comment.target_line }}, {{ comment.author.name }}, {{ comment.created_at }}
+                      </div>
+                      <div class="panel-body ">
+                          {{ comment.content }}
+                          {% if comment.comment_set.all %}
+                              {% for nested_comment in comment.comment_set.all %}
+                                  <div class="panel-heading"><i class="fa fa-comment"></i> {{ nested_comment.author.name }}, {{ nested_comment.created_at }}</div>
+                                <li class="list-group-item list-group-item-{% if nested_comment.author_student %}warning{% else %}info{% endif %}">{{ nested_comment.content }}</li>
+                                  {% if forloop.last %}
+                                    <!--- REPLY --->
+                                      <form action="{% url 'comment_reply' comment.id %}#review" method="post">{% csrf_token %}
+                                        <div class="input-group" style="margin-top: 5px; margin-left: 15px;">
+                                              <span class="input-group-addon"><i class="fa fa-comments-o"></i></span>
+                                              <input type="text" class="form-control" placeholder="Comment" name="comment" >
+                                              <input type="hidden" name="comment_type" value="">
+                                              <input type="hidden" name="target" value="{{ object.id }}">
+                                              <span class="input-group-btn">
+                                                <button class="btn btn-default" type="submit">Reply</button>
+                                              </span>
+                                        </div><!-- /input-group -->
+                                      </form>
+                                  {% endif %}
+                              {% endfor %}
+                          {% endif %}
+                      </div>
+                    </div>
+                {% endif %}{% endfor %}
+
+                <div class="panel panel-info" style="display: none;" id="new_comment_line">
+                  <div class="panel-heading">
+                    <i class="fa fa-comment"></i> Line: #<span id="line_num"></span>
+                  </div>
+                  <div class="panel-body">
+                      <textarea class="form-control" rows="3" id="comment_line"></textarea>
+                  </div>
+                  <div class="panel-footer">
+                      <button class="btn btn-default btn-embossed" onclick="$('#comment').val($('#comment_line').val()); $('#target_line').val($('#line_num').text()); $('#per_line_comment_form').submit();">Add</button>
+                  </div>
+                </div>
+
+
+
+            </div>
+            <div class="col-sm-6">
+        {#        <pre><code class="python">{{ object.content }}</code></pre>#}
+                <pre id="code" class="brush: py">{{ object.content }}</pre>
+        {#        <pre><code class="prettify">{{ object.content }}</code></pre>#}
+        {#    <pre class="prettyprint linenums=1">{{ object.content }}#}
+        {#{</pre>#}
+            </div>
+
+            <form method="post" id="per_line_comment_form">{% csrf_token %}
+                <input type="hidden" name="target_line" value="-1" id="target_line">
+                <input type="hidden" name="comment" id="comment" value="">
+            </form>
+        </div>
+        <div role="tabpanel" class="tab-pane" id="profile">
+
+            <!-- RUN TEST TAB -------->
+
+            <div class="container col-sm-6 col-lg-8" style="padding-top: 10px;" id="code_div">
+                <div class="row">
+                    <button class="btn btn-success pull-right btn-embossed" onclick="live_run()" id="run_btn" data-loading-text="Running..." ><i class="fa fa-play" aria-hidden="true"></i> Run</button>
+                    <button id="expand_btn" style="margin-right: 20px;" class="btn btn-default pull-right hidden-xs btn-embossed" onclick="expand_code_div()"><i class="fa fa-expand" aria-hidden="true"></i> Expand</button>
+                    <button id="compress_btn" style="margin-right: 20px; display: none;" class="btn btn-default pull-right btn-embossed" onclick="compress_code_div()"><i class="fa fa-compress" aria-hidden="true"></i> Show Live Run</button>
+                </div>
+                <div class="row" style="padding-top: 10px;">
+                    <div id="editor">{{ object.content }}</div>
+                </div>
+            </div>
+
+            <!-- LIVE OUTPUT -->
+            <div id="live_output_div" class="col-sm-6 col-lg-4" style="padding-top: 10px;">
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h3 class="panel-title">Live output</h3>
+                      <div class="pull-right" style="margin-top: -25px;">
+                          <span class="label label-default">{{ object.task.runner.name }}</span>
+                      </div>
+                  </div>
+                  <div class="panel-body">
+                      <pre id="live_output">Python 3.5.1 (v3.5.1:37a07cee5969, Dec  5 2015, 21:12:44)
+>>>
+                      </pre>
+                  </div>
+                </div>
+            </div>
+
+        </div>
+
+
+{#        </div>#}
+{#  </div>#}
+
+
+
+{% endblock %}
+
+{% block script %}
+{#EDITOR STUFF#}
+
+<script src="{% static 'js/ace.js' %}" type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'js/mode-python.js' %}" type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'js/theme-monokai.js' %}" type="text/javascript" charset="utf-8"></script>
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.getSession().setMode("ace/mode/python");
+
+    var url = document.location.toString();
+    if (url.match('#')) {
+        $('.nav-tabs a[href="#' + url.split('#')[1] + '"]').tab('show');
+    }
+</script>
+
+<script>
+ $(function () {
+  $('[data-toggle="popover"]').popover()
+})
+</script>
+
+
+{#<script type="text/javascript" src="{% static 'js/require.js' %}"></script>#}
+<script type="text/javascript" src="{% static 'js/shCore.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/shBrushPython.js' %}"></script>
+<link href="{% static 'css/shCore.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/shThemeRDark.css' %}" rel="stylesheet" type="text/css" />
+<style>
+    /*New class - for already commented lines*/
+    .syntaxhighlighter .gutter .line.commented {
+      background-color: #95a34e !important;
+      color: #1b2426 !important;
+    }
+    .gutter > .line {
+      cursor: pointer;
+    }
+</style>
+<script type="text/javascript">
+    $( document ).ready(function() {
+        SyntaxHighlighter.all();
+        });
+
+    var sel = ".gutter > .line"
+    var time = 50
+    function bind_function() {
+        $(sel).click(function(event){
+            console.log(event.target.textContent);
+            var num = event.target.textContent;
+            target = $( event.target );
+            $('#line_num').text(num);
+            $('#new_comment_line').show();
+            console.log(target);
+            $(sel).removeClass('highlighted');
+            target.addClass('highlighted');
+
+        });
+
+        {% for line in commented_lines %}{% if line != -1 %}
+        $(".gutter > .number{{ line }}").addClass('commented')
+        {% endif %}{% endfor %}
+    }
+
+    function waitForElementToDisplay(sel, time, functionCallback) {
+        if(document.querySelector(sel)!=null) {
+            functionCallback();
+        }
+        else {
+            setTimeout(function() {
+                waitForElementToDisplay(sel, time, functionCallback);
+            }, time);
+        }
+    }
+    waitForElementToDisplay(sel, 50, bind_function);
+
+    function live_run(){
+            $("#run_btn").button('loading');
+            var postdata={
+              'code':editor.getValue(),
+              'runner':{{ object.task.runner.pk }},
+              'user':{{ request.user.id }},
+              'csrfmiddlewaretoken': '{{ csrf_token }}'
+            };
+            $.post("{% url 'run_code' %}", postdata, function (data) {
+                data = jQuery.parseJSON(data);
+                console.log(data);
+                if (data.error){
+                    $("#live_output").html("<span style='color:red'><strong>" + data.error.name + "</strong></span>: " + data.error.message);
+                } else {
+                    $("#live_output").html(data.result);
+                }
+                $("#run_btn").button('reset');
+            });
+        }
+
+    function fav_solution(){
+        var postdata={
+              'csrfmiddlewaretoken': '{{ csrf_token }}'
+            };
+        $.post("{% url 'fav_solution' object.pk %}", postdata, function (data) {
+            $("#big_star").show();
+            $("#unfav_btn").show();
+            $("#fav_btn").hide();
+        });
+    }
+    function unfav_solution(){
+        var postdata={
+              'csrfmiddlewaretoken': '{{ csrf_token }}'
+            };
+        $.post("{% url 'unfav_solution' object.pk %}", postdata, function (data) {
+            $("#big_star").hide();
+            $("#unfav_btn").hide();
+            $("#fav_btn").show();
+        });
+    }
+    function uncommit(){
+        var postdata={
+              'csrfmiddlewaretoken': '{{ csrf_token }}'
+            };
+        $.post("{% url 'uncommit' object.pk %}", postdata, function (data) {
+            $("#committed_yes").hide();
+            $("#committed_no").show();
+        });
+    }
+
+    function expand_code_div(){
+        $('#live_output_div').hide();
+        $('#run_btn').hide();
+        $('#expand_btn').hide();
+        $('#compress_btn').show();
+        document.getElementById("code_div").className = 'container col-sm-12';
+    }
+    function compress_code_div(){
+        $('#live_output_div').show();
+        $('#run_btn').show();
+        $('#expand_btn').show();
+        $('#compress_btn').hide();
+        document.getElementById("code_div").className = 'container col-sm-6 col-lg-8';
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "basis.html"  %}
+
+{% block nav %}
+    {% include 'nav.html' with active="resources" %}
+{% endblock %}
+
+{% block title %}
+Resources
+{% endblock %}
+
+
+{% block content %}
+    <h2><i class="fa fa-leanpub"></i> All available resources</h2>
+    <table class="table">
+      <thead class="thead-default">
+        <tr>
+          <th>Name</th>
+{#          <th class="hidden-sm hidden-xs">Type</th>#}
+          <th class="hidden-xs">Comment</th>
+          <th class="hidden-sm hidden-xs">Session / Course</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in object_list %}
+        <tr>
+          <td><a class="btn btn-info btn-embossed" href="/download/{{ r.id }}"><span class="glyphicon glyphicon-{% if r.url %}share{% else %}{% if r.resource_type == 'BOOK' %}book{% endif %}paperclip{% endif %}"></span>&nbsp;&nbsp;{{ r.name }}</a></td>
+{#          <td class="hidden-sm hidden-xs">{{ r.get_resource_type_display }}</td>#}
+{#          <td><a class="btn" href="/download/{{ r.id }}"><span class="glyphicon glyphicon-download"></span> Download</a></td>#}
+          <td class="hidden-xs">{{ r.comment }}</td>
+          <td class="hidden-sm hidden-xs">Session #{{ r.sessions.first.number }} ({{ r.sessions.first.short_description }})</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+{% endblock %}

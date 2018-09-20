@@ -1,0 +1,327 @@
+{% extends "basis.html" %}
+
+{% load static from staticfiles %}
+
+{% block title %}
+{{ object.name }}
+{% endblock %}
+
+{% block style %}
+    <style>
+        .ui-sortable-helper {
+            display: table;
+        }
+    </style>
+{% endblock %}
+
+{% block nav %}
+    {% include 'nav.html' with active='trainer' %}
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <ul class="breadcrumb" style="margin-bottom: 5px;">
+            <li><a href="{% url 'root' %}"><span class="fui-arrow-left"></span> Courses</a></li>
+            <li><a href="{% url 'view_offline_course' object.pk %}">{{ object.name }}</a></li>
+            <li class="active">Editing: {{ object.name }}</li>
+        </ul>
+        <div class="col-md-12">
+            <h2><span class="glyphicon glyphicon-blackboard" aria-hidden="true"></span>&nbsp;&nbsp; Course {{ object.name }}
+                <button type="button" style="margin-top: 22px;" id="openModal" class="btn btn-success pull-right btn-embossed" data-toggle="modal" data-target="#updateCourse"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> &nbsp;Attributes</button>
+            </h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-body" style="margin-bottom: -15px;">
+                <p>Track{{ object.tracks.all|pluralize }}: {% for track in object.tracks.all %}
+                    <span class="label label-danger" style="background-color: {{ track.color }};">{{ track.short_name }}</span>
+                {% endfor %}
+                <span style="margin-left:30px;">Active: <span class="{% if object.active %}fui-check{% else %}fui-cross{% endif %}"></span></span>
+                <span style="margin-left:30px;">Start date: {{ object.start_date }}</span>
+                {% if object.end_date %}
+                    <span style="margin-left:30px;">End date: {{ object.end_date }}</span>
+                {% endif %}
+                </p>
+                {% if object.trainers.all %}
+                    <p>Trainer{{ object.trainers.all|pluralize }}: <strong>{% for t in object.trainers.all %}
+                        {{ t.name }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    </strong></p>
+                {% else %}
+                    <p> Author: <strong>{{ object.author.name }}</strong></p>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#sessions" aria-controls="sessions" role="tab" data-toggle="tab">Sessions</a></li>
+        <li role="presentation"><a href="#students" aria-controls="students" role="tab" data-toggle="tab">Students</a></li>
+    </ul>
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane fade in active" id="sessions">
+        {% if object.is_offline %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Session</th>
+                            <th>Quiz</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sortable" name="sessions">
+                        {% for s in object.offlinesession_set.all %}
+                            <tr data-session-id="{{ s.id }}">
+                                <td><span class="glyphicon glyphicon-resize-vertical"></span>&nbsp;&nbsp;&nbsp;<a class="alert-link" href="{% url 'view_offline_session' s.id %}">{{ s.name }}</a></td>
+                                <td>{% if s.quiz != None %}<a class="alert-link" href="{% url 'quiz:quiz_mode' s.quiz.id %}">{{ s.quiz }}</a>{% else %}{{ s.quiz }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+        {% else %}
+            <table class="table">
+                <thead class="thead-default">
+                    <tr>
+                        <th>#</th>
+                        <th>Session</th>
+                        <th>Start time</th>
+                        <th>Resources</th>
+                        <th>Hometasks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in object.session_set.all %}
+                    <tr>
+                        <td>{{ s.order }}</td>
+                        <td><a class="alert-link" href="/session/{{ s.id }}">{{ s.name }}</a></td>
+                        <td>{{ s.start_time }}</td>
+                        <td>{{ s.resource_set.all.count }}</td>
+                        <td>{{ s.task_set.all.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+            {% if object.is_offline %}<button id="submit_order_button" class="btn btn-success btn-embossed" disabled><span class="glyphicon glyphicon-sort" aria-hidden="true"></span> <span id="submit_order_button_text">Change order</span></button>{% endif %}
+            <a class="btn btn-success btn-embossed" href="{% if object.trainers.all %}{% url 'create_session' object.id  %} {% else %}{% url 'create_offline_session' object.id  %} {% endif %}"><span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span> Create session</a>
+        </div>
+        <div role="tabpanel" class="tab-pane fade" id="students">
+            <table class="table">
+                <thead class="thead-default">
+                    <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in object.student_set.all %}
+                    <tr id="{{s.id}}">
+                    <td>{{ s.name }}</td>
+                    <td>{{ s.email }}</td>
+                    <td><p style="display:inline;"><button type="button" class="btn btn-default btn-xs delete" id="delete_button" data-toggle="modal" data-target="#confirm" data-message="delete" data-name="{{ s.name }}" data-email="{{ s.email }}" data-student="{{ s.id }}"><i class="fa fa-close" aria-hidden="true"></i></button></p></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="panel">
+                <form method="POST">{% csrf_token %}
+                    <textarea name="users" class="form-control" rows="3" placeholder="Paste email list with students to create missing users, default pass = email"></textarea>
+                    <button class="btn btn-success btn-embossed" style="margin-top:3px;"><span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span> Add users to course</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+   
+
+        <!-- Modal - Delete user -->
+  <div class="modal fade" id="confirm" role="dialog">
+        <div class="modal-dialog">
+            
+            <!-- Modal content-->
+            <div class="modal-content">         
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Delete user</h4>
+                </div>
+                <div class="modal-body">
+                    <p>You are about to delete:</p>
+                    <strong><p style="display:inline" id="student_name"></p></strong>
+                    <strong><p style="display:inline; margin-left:20px;" id="student_email"></p></strong>                    
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger pull-right" style="margin-left:5px;" id="delete"> Delete </button>                                        
+                    <button type="button" class="btn btn-success pull-right" data-dismiss="modal"> Cancel </button>
+                </div>
+          </div>
+      </div>
+  </div>
+
+    <!-- Modal - Update Course -->
+    <div class="modal fade" id="updateCourse" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <form method="POST" role="form"> {% csrf_token %}
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">Edit course</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="course_name">Name</label>
+                            <input class="form-control" required rows="1" name="course_name" id="course_name" value="{{ object.name }}" placeholder="Enter name"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="startDateTimePicker">Start Date</label>
+                            <div class='input-group date' id='datetimepicker1'>
+                                <input type='text' class="form-control" id="startDateTimePicker" {% if object.start_date %} value="{{ object.start_date|date:'d/m/Y' }}" {% endif %} name="start_date" />
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="endtDateTimePicker">End Date</label>
+                            <div class='input-group date' id='datetimepicker2'>
+                                <input type='text' class="form-control" id="endtDateTimePicker"  {% if object.end_date %} value="{{ object.end_date|date:'d/m/Y' }}" {% endif %}  name="end_date" />
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="course_active">Is Active?</label>
+                            <div class="bootstrap-switch-square">
+                                <input type="checkbox" value={{ object.active }} data-toggle="switch" name="course_active" id="course_active" {% if object.active %} checked {% endif %} />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="tracks">Tracks</label>
+                            <select id="select_tracks" required multiple="multiple" class="form-control multiselect multiselect-info" name="tracks" title="Please select">
+                                {% for track in tracks %}
+                                    <option value="{{track.id}}" {% if track in object.tracks.all %} selected {% endif %} class="tracks_option">{{ track }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if object.trainers %}
+                            <div class="form-group">
+                                <label for="select_trainers">Additional trainers</label>
+                                <select id="select_trainers" multiple="multiple" class="form-control multiselect multiselect-info" name="trainers" title="Please select">
+                                    {% for trainer in additional_trainers %}
+                                        <option value="{{ trainer.id }}" {% if trainer in object.trainers.all %} selected {% endif %} class="trainers_option">{{ trainer }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left: 5px;"><span class="glyphicon glyphicon-ok"></span> Update </button>
+                        <button type="button" class="btn btn-danger btn-default pull-right btn-embossed" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'js/bootstrap-multiselect.js' %}"></script>
+    <script src="{% static 'js/moment.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap-datetimepicker.min.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script>
+        $(document).ready(function() {
+
+            $('#confirm').on('show.bs.modal', function (event) {
+              var button = $(event.relatedTarget);
+              var name = button.data('name');
+              var email = button.data('email');
+              var student_id = button.data('student');
+              var course_id = {{object.id}};
+
+              var modal = $(this);
+
+              $('#student_name').html(name);
+              $('#student_email').html(email);
+
+              $("#delete").on("click", function () {
+                  var body = {'csrfmiddlewaretoken': "{{ csrf_token }}", 'mode': "{{ course_type }}"};
+
+                  $.post( course_id+"/student/"+student_id, body, function( data ) {
+                      if (data == "OK") {
+                          button.closest("tr").remove();
+                          modal.modal("hide");
+                      };
+                    });
+                  });
+              });
+
+            $('.delete').on('mouseenter', function() {
+                $(this).removeClass('btn-default');
+                $(this).addClass('btn-danger');
+            });
+
+            $('.delete').on('mouseleave', function() {
+                $(this).removeClass('btn-danger');
+                $(this).addClass('btn-default');
+            });
+
+            $('#datetimepicker1').datetimepicker({
+                format: 'DD/MM/YYYY',
+            });
+            $('#datetimepicker2').datetimepicker({
+                format: 'DD/MM/YYYY',
+            });
+
+            $("#select_tracks").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: "Select tracks"});
+
+            $("#select_trainers").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: "Select trainers"});
+
+            $('#course_active').bootstrapSwitch();
+
+            $('#course_active').on('switchChange.bootstrapSwitch', function(event, state) {
+                var value = $(this).val();
+                if (value === 'False') {
+                    $(this).val('True');
+                }
+                else {
+                    $(this).val('False');
+                }
+            });
+            $( "#sortable" ).sortable();
+
+            var sessions = {};
+            $( "#sortable" ).on('sortstop', function() {
+
+                var items = $(this).children();
+
+                for (var order = 0; order < items.length; order++) {
+                    var session_id = $(items[order]).data("session-id");
+                    sessions[parseInt(session_id)] = order + 1;
+                };
+{#                $('#submit_order').removeClass('disabled').disabled(false);#}
+                $('#submit_order_button').attr('disabled', false);
+            });
+
+            $('#submit_order_button').on('click', function() {
+                var body = {'csrfmiddlewaretoken': "{{ csrf_token }}", "sessions": JSON.stringify(sessions)};
+                $('#submit_order_button').attr('disabled', true);
+                $('#submit_order_button_text').text('Updating...');
+                $.post({{ object.id }}, body, function(data) {
+                    if (data === "OK")
+                        $('#submit_order_button_text').text('Change order');
+                });
+            });
+        });
+
+    </script>
+{% endblock %}

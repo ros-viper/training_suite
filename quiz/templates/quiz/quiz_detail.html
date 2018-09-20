@@ -1,0 +1,95 @@
+{% extends "basis.html" %}
+
+{% load quiz_custom_tags %}
+
+{% block nav %}
+    {% include "nav.html" with active='quiz' %}
+{% endblock %}
+
+{% block title %}Quiz {{ quiz.name }}{% endblock %}
+
+{% block content %}
+<h3>Results of "{{ quiz.name }}"
+    <select class="form-control select select-primary select-block mbl pull-right">
+        <option data-id="all_courses">All courses</option>
+        {% for course in courses %}
+            {% if quiz in course.quiz_set.all %}
+                <option data-id="{{ course.id }}">{{ course.name }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+</h3>
+<table class="table table-condensed">
+    <thead>
+        <tr>
+            <th>Assigned Students</th>
+            <th>Course</th>
+            <th>Email</th>
+            <th>Passed?</th>
+            <th>Score</th>
+            <th>Passed Questions</th>
+            <th>Number of Tries</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for course in courses %} {#<!-->Loops through all courses available to the current trainer<-->#}
+            {% if quiz in course.quiz_set.all %} {#<!-->Checks if the current quiz belongs to the course<-->#}
+                {% for student in course.student_set.all %} {#<!-->Loops through all students subscribed to the course<-->#}
+                    <tr class="course course_{{ course.id }}">
+                        {% if student.submittedresult_set.all %} {#<!-->Checks if student has submitted results at all<-->#}
+                            {% for submitted_result in student.submittedresult_set.all %} {#<!-->Loops through all submitted results of the student<-->#}
+                                {% if submitted_result.quiz == quiz %} {#<!-->Checks if the submitted result is connected to the current quiz<-->#}
+                                    <td> <a href="{% url 'quiz:submitted_result' submitted_result.id %} ">{{ student.name }}</a></td>
+                                    <td>{{ course.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    {% if submitted_result.passed %}
+                                        <td>Passed</td>
+                                    {% else %}
+                                        <td>Failed</td>
+                                    {% endif %}
+                                    <td>{{ submitted_result.score }}</td>
+                                    <td>{{ submitted_result.questions_passed }}</td>
+                                {% else %}
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ course.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>Not Submitted</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <td>{{ student.name }}</td>
+                            <td>{{ course.name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>Not Submitted</td>
+                            <td>-</td>
+                            <td>-</td>
+                        {% endif %}
+                            <td>{% tries_or_dash %}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block script %}
+<script>
+    $(document).ready(function() {
+        $("select").select2({dropdownCssClass: 'dropdown-inverse'});
+
+        $("select").change(function() {
+            var course_id = $(this).find(':selected').data('id');
+            if (course_id == "all_courses") {
+                $(".course").show();
+            }
+            else {
+                $(".course").hide();
+                $(".course_" + course_id).show();
+            };
+        });
+    });
+</script>
+{% endblock %}

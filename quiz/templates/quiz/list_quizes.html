@@ -1,0 +1,51 @@
+{% extends "basis.html" %}
+
+{% block nav %}
+    {% include "nav.html" with active='quiz' %}
+{% endblock %}
+
+{% block title %}Quizes{% endblock %}
+
+{% block content %}
+    <h2><i class="fa fa-check-square-o" aria-hidden="true"></i> Quizes</h2>
+    <table class="table table-condensed">
+        <thead>
+            <tr>
+                <th>Quiz Name</th>
+{#                <th>Course</th>#}
+                <th>Number of questions</th>
+                {% if user.trainer %}
+                    <th>Assigned Students</th>
+                    <th>Students Passed Quiz</th>
+                    <th>Active</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for quiz in quizes %}
+                {% if user.trainer %}
+                    <tr>
+                        <td><a href="{% url 'quiz:quiz_mode' quiz.id %}">{{ quiz.name }}</a></td>
+{#                        <td>{{ course.name }}</td>#}
+                        <td>{{ quiz.test_length }}</td>
+                        <td>{{ course.student_set.all.count }}</td> <!--get assigned students of course-->
+                        <td>{{ quiz.submittedresult_set.all.count }}</td> <!--get students who have SubmittedResult for this quiz-->
+                        <td>{{ quiz.active }}</td>
+                    </tr>
+                {% else %}
+                    {% if quiz.active %}
+                        <tr>
+                            <td><a href="{% url 'quiz:quiz_mode' quiz.id %}">{{ quiz.name }}</a></td>
+{#                            <td>{{ course.name }}</td>#}
+                            <td>{{ quiz.test_length }}</td>
+                        </tr>
+                    {% endif %}
+                {% endif %}
+            {% empty %}
+                <tr>
+                    <td>No quizes are available</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

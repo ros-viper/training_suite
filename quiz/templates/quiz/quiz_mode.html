@@ -1,0 +1,114 @@
+{% extends "basis.html" %}
+
+{% load quiz_custom_tags %}
+
+{% block nav %}
+    {% include "nav.html" with active='quiz' %}
+{% endblock %}
+
+{% block title %}Quiz {{ quiz_name }}{% endblock %}
+
+{% block head_scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.js"></script>
+{% endblock %}
+
+{% block content %}
+    <form method="POST"> {% csrf_token %}
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-10">
+                    <h3>{{ quiz_name }}</h3>
+                </div>
+                <div class="col-sm-10 col-sm-offset-8" id="timer">
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-sm-10">
+                        {% for question in question_list %}
+                        <div class="panel panel-default" id="question_{{question.id}}" style="display: {% if forloop.first %}block{% else %}none{% endif %}">
+                            <div class="panel-heading">
+                                {% if forloop.revcounter0 == 0 %}
+                                    Question # {{ forloop.counter }}; The Final!
+                                {% else %}
+                                    Question # {{ forloop.counter }}; {{ forloop.revcounter0 }} more to go!
+                                {% endif %}
+                            </div>
+                            <div class="panel-body">                               
+                                <div id="content__{{ forloop.counter }}">{{ question.content|safe }}</div>
+                                <script>
+                                  document.getElementById('content__{{ forloop.counter }}').innerHTML =
+                                      marked(document.getElementById('content__{{ forloop.counter }}').innerHTML);
+                                </script>
+                            </div>
+                                {% for answer in question.answer_set.all %}                                    
+                                    <div class="panel-footer">
+                                        <div class={% radio_or_checkbox %}>
+                                            <label>
+                                                <input type={% radio_or_checkbox %} name="{{ question.id }}" value="{{ answer.id }}" onchange="onInputChange()">{{ answer.content }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}                                
+                        </div>
+                        {% endfor %} 
+                    </div> 
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-sm-10">
+                        <label style="float:right;">
+                            <button class="btn btn-default next" type="button" style="display: none;" onclick="onNextClick()">Next question</button>
+                        </label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-10">
+                        <label style="float:right;"> <!-- Submit button !-->
+                            <button class="btn btn-primary submit" type="submit" style="display: none;">Submit</button>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}
+{% block script %}
+{#    <script src="http://strapdownjs.com/v/0.2/strapdown.js"></script>#}
+
+
+    <script>
+        var p = 0;
+        
+        var panels = $(".panel-default");
+        var submit = $(".submit");
+        var next = $(".next");       
+    
+        var onInputChange = function () {
+            if (p == panels.length - 1){
+                $(submit).show();
+            } else {
+                $(next).show();
+            }
+        };
+        
+        var onNextClick = function () {
+            $(panels[p]).hide();
+            p += 1;
+            $(panels[p]).show();
+            $(next).hide();
+        };
+        
+        var timerVar = setInterval(countTimer, 1000);
+        var totalSeconds = 0;
+        function countTimer() {
+        ++totalSeconds;
+        var hour = Math.floor(totalSeconds /3600);
+        var minute = Math.floor((totalSeconds - hour*3600)/60);
+        var seconds = totalSeconds - (hour*3600 + minute*60);
+
+        document.getElementById("timer").innerHTML = "Time passed" + ": " + minute + ":" + seconds;
+        }
+    </script>
+{% endblock %}

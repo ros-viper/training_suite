@@ -1,0 +1,470 @@
+{% extends "basis.html" %}
+
+{% load markdown_deux_tags %}
+{% load custom_tags %}
+
+{% block title %}Discussions{% endblock %}
+
+{% block nav %}
+    {% include "nav.html" with active='discussions' %}
+{% endblock %}
+
+{% block head_scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<a class="link" href="{% url 'discussions:list_threads' %}"><i class="fa fa-arrow-left" aria-hidden="true"></i> Back</a>
+
+<h2>{{ object.subject }}</h2>
+
+{% if object.content != '' %}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            {% if object.author == request.user %}  
+                <p style="display:inline; float:right;">
+                    <button type="button" class="btn btn-default btn-xs editButton btn-embossed" id="updateContent" data-toggle="modal" data-target="#editThreadContent" data-content="{{ object.content }}" data-threadid="{{ object.id }}">
+                    <i class="fa fa-pencil" aria-hidden="true"></i></button>
+                </p>
+            {% endif %}
+            <p style="display:inline; float:right;"><button type="button" class="btn btn-default btn-xs quoteButton btn-embossed" id="quote__{{forloop.counter}}" data-toggle="modal" data-target="#quote_form" data-message="{{ object.content }}" data-author="{{ object.author.first_name }} {{ object.author.last_name }}" data-date="{{ object.date_added }}" data-origin="{{ message.id }}"><i class="fa fa-quote-right" aria-hidden="true"></i></button></p>
+            <h5 style="display:inline; "><a href="{% url 'discussions:user_detail' object.author.id %}">{{ object.author.first_name }} {{ object.author.last_name }}</a><small> {{ object.date_added }}</small></h5>
+        </div>
+        <div class="panel-body">
+            <div id="content__main">{{ object.content|safe }}</div>
+            <script>
+                document.getElementById('content__main').innerHTML =
+                    marked(document.getElementById('content__main').innerHTML);
+            </script>
+        </div>
+    </div>
+{% endif %}
+
+<div style="margin-bottom:10px; margin-top: -13px;">
+    <button type="button" class="btn btn-default btn-sm reply btn-embossed" data-toggle="modal" data-target="#newMessage">Reply to thread</button>
+</div>
+    {% for message in messages %}
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                {% if message.author == request.user %}
+                    <p style="display:inline; float:right;"><button type="button" class="btn btn-default btn-xs delete btn-embossed" data-toggle="modal" data-target="#confirm" data-message="delete" data-messageid="{{ message.id }}"><i class="fa fa-close" aria-hidden="true"></i></button></p>
+                    <p style="display:inline; float:right;">
+                        <button type="button" class="btn btn-default btn-xs editButton btn-embossed" id="updateMessage" data-toggle="modal" data-target="#editMessage" data-message="{{ message.content }}" data-messageid="{{ message.id }}">
+                        <i class="fa fa-pencil" aria-hidden="true"></i></button>
+                    </p>
+                {% endif %}
+                <p style="display:inline; float:right;"><button type="button" class="btn btn-default btn-xs quoteButton btn-embossed" id="quote__{{forloop.counter}}" data-toggle="modal" data-target="#quote_form" data-message="{{ message.content }}" data-author="{{ message.author.first_name }} {{ message.author.last_name }}" data-date="{{ message.date_added }}" data-origin="{{ message.id }}"><i class="fa fa-quote-right" aria-hidden="true"></i></button></p>
+                <h5 style="display:inline; "><a href="{% url 'discussions:user_detail' message.author.id %}">{{ message.author.first_name }} {{ message.author.last_name }}</a><small> {{ message.date_added }}</small></h5>
+            </div>
+            <div class="panel-body">
+                {% if message.quote %}
+                    <div class="panel panel-default">                        
+                        {% uuid uuid_id %}
+                        <div class="panel-body" style="background-color: #EEEEEE;">
+                            <div id="content__{{ uuid_id }}">{{ message.quote|safe }}</div>
+                            <script>
+                                document.getElementById('content__{{ uuid_id }}').innerHTML =
+                                    marked(document.getElementById('content__{{ uuid_id }}').innerHTML);
+                            </script>
+                        </div>
+                    </div>
+                {% endif %}
+                {% uuid uuid_id %}
+                <div id="content__{{ uuid_id }}">{{ message.content|safe }}</div>
+                <script>
+                    document.getElementById('content__{{ uuid_id }}').innerHTML =
+                        marked(document.getElementById('content__{{ uuid_id }}').innerHTML);
+                </script>                       
+            </div>
+        </div>
+    {% endfor %}
+
+    {% if messages %}
+        <div>
+            <button type="button" class="btn btn-default btn-sm reply btn-embossed" data-toggle="modal" data-target="#newMessage">Reply to thread</button>
+        </div>
+    {% endif %}
+
+
+<nav id="pager" style="text-align: center">
+    <ul class="pagination">
+        <li class="{% if messages.has_previous %} {% else %} disabled {% endif %}">
+            <a href="?page=1" aria-label="First">
+                <span aria-hidden="true">First</span>
+            </a>
+        </li>
+        <li class="{% if messages.has_previous %} {% else %} disabled {% endif %}">
+            <a href="{% if messages.has_previous %} ?page={{ messages.previous_page_number }} {% endif %}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+        {% for p in pages %}
+            {% if p == '...' %}
+                <li>
+                    <a style="color:black">...</a>       
+                </li>
+            {% else %}
+                <li class="{% if messages.number == p %} active {% endif %} pages">
+                    <a href="?page={{ p }}">{{ p }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        <li class="{% if messages.has_next %} {% else %} disabled {% endif %}">
+            <a href="{% if messages.has_next %} ?page={{ messages.next_page_number }} {% endif %}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+        <li class="{% if messages.has_next %} {% else %} disabled {% endif %}">
+            <a href="?page={{ paginator.num_pages }}" aria-label="Last">
+                <span aria-hidden="true">Last</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+
+    
+    <!-- Modal - Edit thread content -->
+<div class="modal fade" id="editThreadContent" role="dialog">
+    <div class="modal-dialog">
+        
+        <!-- Modal content-->
+        <div class="modal-content">
+            <form method="POST" class="form-horizontal" role="form"> {% csrf_token %}
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Update message</h4>
+                </div>
+                <div class="modal-body">                                                        
+                    <div class="form-group">
+                        <div  class="col-sm-12">
+                            <textarea type="text" rows="3" class="form-control threadcontent" name="threadContent" id="threadcontent"></textarea>
+                            <input type="hidden" class="thread_id" name="threadID"></input>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="col-sm-12">                                
+                            <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left:5px;"> Update </button>
+                            <button type="button" class="btn btn-danger pull-right btn-embossed" data-dismiss="modal"> Cancel </button>
+                        </div> 
+                    </div>                    
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal - New message -->
+<div class="modal fade" id="newMessage" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <form method="POST" id="userForm"> {% csrf_token %}
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Add new message</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="addMessage">Add new message:</label>
+                        <textarea class="form-control" rows="3" name="message" id="addmessage"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left:5px;"> Add </button>
+                    <button type="button" class="btn btn-danger pull-right btn-embossed" data-dismiss="modal"> Cancel </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal - Edit message -->
+<div class="modal fade" id="editMessage" role="dialog">
+    <div class="modal-dialog">
+        
+        <!-- Modal content-->
+        <div class="modal-content">
+            <form method="POST" class="form-horizontal" role="form"> {% csrf_token %}
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Update message</h4>
+                </div>
+                <div class="modal-body">                                                        
+                    <div class="form-group">
+                        <div  class="col-sm-12">
+                            <textarea type="text" rows="3" class="form-control " name="message" id="messagecontent"></textarea>
+                            <input type="hidden" name="messageID"></input>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="col-sm-12">                                
+                            <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left:5px;"> Update </button>
+                            <button type="button" class="btn btn-danger pull-right btn-embossed" data-dismiss="modal"> Cancel </button>
+                        </div> 
+                    </div>                    
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal - Delete message -->
+<div class="modal fade" id="confirm" role="dialog">
+    <div class="modal-dialog">
+        
+        <!-- Modal content-->
+        <div class="modal-content">
+            <form method="POST" id="delete_form" class="form-horizontal" role="form"> {% csrf_token %}
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Delete message</h4>
+                </div>
+                <div class="modal-body">
+                    <p>You are about to delete.</p>
+                    <p>Do you want to proceed?</p>
+                    <div class="form-group">
+                        <textarea type="text" style="display:none;" class="form-control " name="delete"></textarea>
+                        <input type="hidden" name="messageID"></input>                        
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger pull-right btn-embossed" style="margin-left:5px;"> Delete </button>
+                    <button type="button" class="btn btn-success pull-right btn-embossed" data-dismiss="modal"> Cancel </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal - Quote message -->
+<div class="modal fade" id="quote_form" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <form method="POST" id="quote_form"> {% csrf_token %}
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Quote message</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <textarea readonly type="text" class="form-control" class="original_message" name="quotedmessage" id="quotedmessage"></textarea>
+                        <textarea class="form-control" rows="3" name="message" id="newmessage" style="margin-top: 5px;"></textarea>
+                        <input class="form-control" type="hidden" name="target_messageid" id="target_messageid"></input>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger pull-right btn-embossed" style="margin-left:5px;"> Reply </button>
+                    <button type="button" class="btn btn-success pull-right btn-embossed" data-dismiss="modal"> Cancel </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block script %}
+<script>
+    $(document).ready(function() {
+        // Edit message
+
+        $('#editMessage').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var message = button.data('message');
+            var messageID = button.data('messageid');
+
+            // console.log(button.data);
+            // console.log(button.data('message'));
+            // console.log(button.data('messageid'));
+
+            var modal = $(this);
+            
+            modal.find('.modal-body input').val(messageID); 
+            modal.find('.modal-body textarea').text(message);                       
+        });
+
+        // Dynamic textarea resize for editing messages
+
+        $('#editMessage').on('shown.bs.modal', function (event) {
+            var textarea = $('#messagecontent');
+            var limitRows = 15;
+            var messageLastScrollHeight = textarea.scrollHeight;
+            textarea.focus();
+
+
+            textarea.on('change keyup paste scroll', function() {
+                var rows = parseInt(textarea.attr("rows"));
+                textarea.attr("rows", "3");
+                
+
+                if ((rows < limitRows) && ($('#messagecontent')[0].scrollHeight > messageLastScrollHeight)) {
+                    rows++;
+                } else if ((rows > 1) && ($('#messagecontent')[0].scrollHeight < messageLastScrollHeight)) {
+                    rows--;
+                }
+
+                messageLastScrollHeight = $('#messagecontent')[0].scrollHeight;
+                textarea.attr("rows", rows);
+            });                
+        });
+
+        // Edit content of thread - first message
+
+        $('#editThreadContent').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var content = button.data('content');
+            var threadID = button.data('threadid');
+
+            var modal = $(this);
+            
+            modal.find('.thread_id').val(threadID); 
+            modal.find('.threadcontent').text(content);                       
+        });
+
+        // Dynamic textarea resize for editing thread content
+
+        $('#editThreadContent').on('shown.bs.modal', function () {
+            var textarea = $('#threadcontent');
+            var limitRows = 15;
+            var messageLastScrollHeight = textarea.scrollHeight;
+            textarea.focus();
+
+
+            textarea.on('change keyup paste scroll', function() {
+                var rows = parseInt(textarea.attr("rows"));
+                textarea.attr("rows", "3");
+                
+
+                if ((rows < limitRows) && ($('#threadcontent')[0].scrollHeight > messageLastScrollHeight)) {
+                    rows++;
+                } else if ((rows > 1) && ($('#threadcontent')[0].scrollHeight < messageLastScrollHeight)) {
+                    rows--;
+                }
+
+                messageLastScrollHeight = $('#threadcontent')[0].scrollHeight;
+                textarea.attr("rows", rows);
+            });                
+        });
+
+        // Dynamic textarea resize for new messages
+
+        $('#newMessage').on('shown.bs.modal', function () {
+            var textarea = $('#addmessage');
+            var limitRows = 15;
+            var messageLastScrollHeight = textarea.scrollHeight;
+            textarea.focus();
+
+
+            textarea.on('change keyup paste scroll', function() {
+                var rows = parseInt(textarea.attr("rows"));
+                textarea.attr("rows", "3");
+                
+
+                if ((rows < limitRows) && ($('#addmessage')[0].scrollHeight > messageLastScrollHeight)) {
+                    rows++;
+                } else if ((rows > 1) && ($('#addmessage')[0].scrollHeight < messageLastScrollHeight)) {
+                    rows--;
+                }
+
+                messageLastScrollHeight = $('#addmessage')[0].scrollHeight;
+                textarea.attr("rows", rows);
+            });
+        });
+
+        $('#confirm').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);        
+            var messageID = button.data('messageid');
+
+            $("#delete_form").attr("action", "delete/" + messageID + "/")
+        });
+
+        $('#quote_form').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            var message = button.data('message');
+            var author = button.data('author');
+            var date = button.data('date');
+            var quotedMessage = button.data('origin');
+
+            
+            $('#quotedmessage').val(author + ' wrote on ' + date + ':' + '\n\n' + message + '\n\n');
+            $('#target_messageid').val(quotedMessage);
+        });
+
+        // Dynamic textarea resize for quoting messages
+
+        $('#quote_form').on('shown.bs.modal', function() {
+            $('#quotedmessage').height( $("#quotedmessage")[0].scrollHeight - 12);
+            var textarea = $('#newmessage');
+            var limitRows = 15;
+            var messageLastScrollHeight = textarea.scrollHeight;
+            textarea.focus();
+
+
+            textarea.on('change keyup paste scroll', function() {
+                var rows = parseInt(textarea.attr("rows"));
+                textarea.attr("rows", "3");
+                
+
+                if ((rows < limitRows) && ($('#newmessage')[0].scrollHeight > messageLastScrollHeight)) {
+                    rows++;
+                } else if ((rows > 1) && ($('#newmessage')[0].scrollHeight < messageLastScrollHeight)) {
+                    rows--;
+                }
+
+                messageLastScrollHeight = $('#newmessage')[0].scrollHeight;
+                textarea.attr("rows", rows);
+            });
+        });
+
+        //add colors to buttons on mouse over
+
+        $('.reply').on('mouseenter', function() {
+            $(this).removeClass('btn-default');
+            $(this).addClass('btn-success');
+        });
+
+        $('.reply').on('mouseleave', function() {
+            $(this).removeClass('btn-success');
+            $(this).addClass('btn-default');
+        });
+
+        $('.delete').on('mouseenter', function() {
+            $(this).removeClass('btn-default');
+            $(this).addClass('btn-danger');
+        });
+        $('.delete').on('mouseleave', function() {
+            $(this).removeClass('btn-danger');
+            $(this).addClass('btn-default');
+        });
+
+        $('.editButton').on('mouseenter', function() {
+            $(this).removeClass('btn-default');
+            $(this).addClass('btn-warning');
+        });
+        $('.editButton').on('mouseleave', function() {
+            $(this).removeClass('btn-warning');
+            $(this).addClass('btn-default');
+        });
+
+        $('.quoteButton').on('mouseenter', function() {
+            $(this).removeClass('btn-default');
+            $(this).addClass('btn-info');
+        });
+        $('.quoteButton').on('mouseleave', function() {
+            $(this).removeClass('btn-info');
+            $(this).addClass('btn-default');
+        });
+
+    });
+    
+</script>
+
+{% endblock %}
+
+{% block style %}
+    <style>button.btn-xs {margin:0px 2px;}</style>
+{% endblock %}

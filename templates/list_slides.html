@@ -1,0 +1,129 @@
+{% extends "basis.html"  %}
+
+{% load static from staticfiles %}
+
+{% block nav %}
+    {% include 'nav.html' with active="slides" %}
+{% endblock %}
+
+{% block title %}
+Resources
+{% endblock %}
+
+{% block style %}
+    <style>
+        .select2-offscreen,
+        .select2-offscreen:focus {
+        // fixing required alert for select2
+        left: auto !important;
+        top: auto !important;
+        }
+    </style>
+{% endblock %}
+
+
+{% block content %}
+    <h2><i class="fa fa-caret-square-o-right" style="display:inline;"></i> All slides
+    {% if request.user.trainer %}
+          <!--Button to call Add slides modal-->
+          <button type="button" class="btn btn-success pull-right btn-embossed" id="newSlides" data-toggle="modal" data-target="#addSlides">Add slides</button>
+    {% endif %}
+    </h2>
+        
+    <table class="table">
+      <thead class="thead-default">
+        <tr>
+          <th>Name</th>
+          <th class="hidden-xs">Comment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in object_list %}
+        <tr>
+          <td><a class="btn btn-success btn-embossed" target="_blank" href="{{ s.path }}"><i class="fa fa-caret-square-o-right"></i>&nbsp;&nbsp;{{ s.name }}</a></td>
+          <td class="hidden-xs">{{ s.comment }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!--Add slides Modal-->
+    <div class="modal fade" id="addSlides" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <form method="POST" role="form"> {% csrf_token %}
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">Add new slides</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">                            
+                            <input class="form-control" type="text" name="name" id="name" placeholder="Name" required>
+                            <input class="form-control" type="URL" style="margin-top: 3px;" name="path" id="path" placeholder="Path"/>
+                            <input class="form-control" type="text" style="margin-top: 3px;" name="comment" id="comment" placeholder="Comment"/>
+                            <label for="courses">Choose Courses:</label>
+                            <select id="select_course" multiple="multiple" class="form-control multiselect multiselect-info" name="courses" required>
+                                {% for course in subscribed_courses %}
+                                    <option value="{{course.id}}" class="slides_option" >{{ course }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="btn-group btn-group-xs">
+                                <button type="button" data-type="course" style="margin-top:3px;" class="btn btn-default btn-xs select_all_button btn-embossed"><span class="glyphicon glyphicon-ok"></span> Select All</button>
+                                <button type="button" data-type="course" style="margin-top:3px; margin-left:3px;" class="btn btn-default btn-xs clear_all_button btn-embossed"><span class="glyphicon glyphicon-remove"></span> Clear</button>
+                            </div> 
+                            <!--<select id="courses" class="m_select flat" name="courses" multiple="multiple" hidden="true" required>
+                                {% for course in subscribed_courses %}
+                                    <option value="{{course.id}}">{{ course }}</option>
+                                {% endfor %}
+                            </select>-->
+                            <br/>
+                            <label for="order">Integer number for sorting (lower will be first):</label>
+                            <input class="form-control" style="width:25%; margin-top:3px;" id="order" type="number" name="order" id="order" placeholder="Enter order"/>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left: 5px;"><span class="glyphicon glyphicon-ok"></span> Add </button>
+                        <button type="button" class="btn btn-danger btn-default pull-right btn-embossed" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script src="{% static 'js/bootstrap-multiselect.js' %}"></script>
+<script>
+    $(document).ready(function() {
+
+        <!--Add the default order based on the number of slideshow objects-->
+        var order = {{slides_count}}+1
+        $('#addSlides').on('shown.bs.modal', function() {
+            $('#order').val(order);
+            $('#path').val('http://');
+        });
+
+        $(".multiselect").select2({dropdownCssClass: 'dropdown-inverse'});
+
+
+        <!--Select all courses-->
+        $(".select_all_button").on("click", function() {
+            var type = $(this).data("type");               
+            var values = $("#select_" + type + ">option").map(function () {
+                return $(this).val();
+            });
+            $("#select_" + type).val(values).trigger("change");
+        });
+
+        <!--Clear all courses-->
+        $(".clear_all_button").on("click", function() {
+            var type = $(this).data("type");
+            $("#select_" + type).val("").trigger("change");
+        });
+
+    });
+
+</script>
+
+{% endblock %}

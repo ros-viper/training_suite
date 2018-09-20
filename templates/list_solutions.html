@@ -1,0 +1,65 @@
+{% extends "basis.html"  %}
+
+{% load custom_tags %}
+
+{% block nav %}
+    {% include 'nav.html' with active="reviews" %}
+{% endblock %}
+
+{% block title %}
+Reviews
+{% endblock %}
+
+
+{% block content %}
+    <h3><i class="fa fa-sitemap fa-3"></i> All hometasks/solutions
+      <select class="form-control select select-primary select-block mbl pull-right">
+        <option data-id="all_courses">All courses</option>
+        {% for course in task_courses  %}
+          <option data-id="{{ course.id }}">{{ course.name }}</option>
+        {% endfor %}
+      </select>
+    </h3>
+    
+    <table class="table">
+      <thead class="thead-default">
+        <tr>
+          <th>Name</th>
+          <th>Solutions</th>
+          <th>Comments</th>
+          <th>Courses</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in object_list %}
+        <tr class="course {% for c in task.courses %}course_{{ c.id }} {% endfor %}">
+          <td><a href="{% url 'view_solutions' task.id %}" class="alert-link">{{ task.name }}</a></td>
+          <td>{% solutions_number %}</td>
+          <td>{% comments_number as comments %}{{ comments }} comment{{ comments | pluralize }}</td>
+          <td>{% for c in task.courses %} {{ c.name }}{% if not forloop.last %},{% endif %} {% endfor %} </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+{% endblock %}
+
+
+{% block script %}
+<script>
+    $(document).ready(function() {
+        $("select").select2({dropdownCssClass: 'dropdown-inverse'});
+
+        $("select").change(function() {
+            var course_id = $(this).find(':selected').data('id');
+            if (course_id == "all_courses") {
+                $(".course").show();
+            }
+            else {
+                $(".course").hide();
+                $(".course_" + course_id).show();
+            };
+        });
+    });
+</script>
+{% endblock %}

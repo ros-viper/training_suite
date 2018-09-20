@@ -1,0 +1,195 @@
+{% extends "basis.html" %}
+
+{% load static from staticfiles %}
+
+{% block title %}
+{% if mode == "update_session" %}Edit session '{{ object.name }}'{% else %}Create Session{% endif %}
+{% endblock %}
+
+{% block nav %}
+    {% include 'nav.html' with active='sessions' %}
+{% endblock %}
+
+{% block style %}
+    <link href="{% static 'css/bootstrap-multiselect.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap-datetimepicker.min.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <!-- BREADCRUMBS for UPDATE_SESSION-->
+    {% if mode == "update_session" %}
+        <ol class="breadcrumb" style="margin-bottom: 5px;">
+          <li><a href="{% url 'root' %}"><span class="fui-arrow-left"></span> Courses</a></li>
+          <li><a href="{% if object.is_offline %}{% url 'view_offline_course' object.course.id %}{% else %}{% url 'view_course' object.course.id %}{% endif %}"><span class="glyphicon glyphicon-{% if object.is_offline %}book{% else %}blackboard{% endif %}" aria-hidden="true"></span>&nbsp;  {{ object.course.name }}</a></li>
+          <li><a href="{% if object.is_offline %}{% url 'view_offline_session' object.id %}{% else %}{% url 'view_session' object.id %}{% endif %}">{{ object.name }}</a></li>
+          <li class="active"> Editing</li>
+        </ol>
+    {% else %}
+        <!-- BREADCRUMBS for CREATE_SESSION-->
+        <ol class="breadcrumb" style="margin-bottom: 5px;">
+          <li><a href="{% url 'root' %}"><span class="fui-arrow-left"></span> Courses</a></li>
+          <li><a href="{% if object.is_offline %}{% url 'view_offline_course' object.id %}{% else %}{% url 'view_course' object.id %}{% endif %}"> {{ object.name }}</a></li>
+          <li class="active"> Creating new session</li>
+        </ol>
+    {% endif %}
+
+    <h3><i class="fa fa-pencil" aria-hidden="true"></i> {% if mode == "update_session" %}Editing session '{{object.name}}'{% else %}Create new session for {{object.name}}{% endif %}</h3>
+
+<form method="POST" id="updateForm"> {% csrf_token %}
+    <div class="row">
+        <div class="{% if not object.is_offline %}col-md-8{% else %}col-md-12{% endif %}">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" class="form-control" id="name" name="name" value="{% if mode == 'update_session' %}{{object.name}}{% endif %}" />
+            </div>
+        </div>
+        {% if not object.is_offline %}
+            <div class="col-md-4">
+                <div class="form-group"> <label for="dateTimePicker">Date & Time</label>
+                    <div class='input-group date' id='start_time'>
+                        <input type='text' class="form-control" name="start_time" {% if object.start_time %} value="{{ object.start_time|date:'d/m/Y H:i' }}" {% endif %} />
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    
+    <div class="form-group">
+        <label for="description">Description</label>
+        <textarea class="form-control" id="description" name="description" rows="4">{{object.description}}</textarea>
+    </div>
+    {% if object.is_offline %}
+        <div class="form-group">
+            <label for="quiz">Choose Quiz</label>
+            <select id="select_quiz" class="form-control select select-primary select-block mbl" name="quiz">
+                <option value="-1" selected="selected">Select a quiz</option>
+                {% for quiz in quizes %}
+                    <option value="{{quiz.id}}" class="quizes_option" {% if quiz == object.quiz %} selected {% endif %}>{{ quiz.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="session_required">Required?</label>
+            <div class="bootstrap-switch-square">
+                <input type="checkbox" value={{ object.required }} data-toggle="switch" name="session_required" id="session_required" {% if object.required %} checked {% endif %} />
+            </div>
+        </div>
+    {% endif %}
+    <div class="form-group">
+        <label for="slides">Choose Slides</label>
+        <select id="select_slides" multiple="multiple" class="form-control multiselect multiselect-info" name="slides">
+            {% for slide in slides %}
+                <option value="{{slide.id}}" class="slides_option" {% if slide in chosen_slides %} selected {% endif %}>{{ slide }}</option>
+            {% endfor %}
+        </select>
+        <div class="btn-group btn-group-xs">
+            <button type="button" data-type="slides" style="margin-top:3px;" class="btn btn-default btn-xs select_all_button btn-embossed"><span class="glyphicon glyphicon-ok"></span> Select All</button>
+            <button type="button" data-type="slides" style="margin-top:3px; margin-left:3px;" class="btn btn-default btn-xs clear_all_button btn-embossed"><span class="glyphicon glyphicon-remove"></span> Clear</button>
+        </div> 
+    </div>
+    <div class="form-group">
+        <label for="resources">Choose Resources</label>
+        <select id="select_resources" multiple="multiple" class="form-control multiselect multiselect-info" name="resources" >
+
+            {% for resource in resources %}
+                <option value="{{resource.id}}" class="resources_option" {% if resource in chosen_resources %} selected {% endif %}>{{ resource }}</option>
+            {% endfor %}
+        </select>
+        <div class="btn-group btn-group-xs">
+            <button type="button" data-type="resources" style="margin-top:3px;" class="btn btn-default btn-xs select_all_button btn-embossed"><span class="glyphicon glyphicon-ok"></span> Select All</button>
+            <button type="button" data-type="resources" style="margin-top:3px; margin-left:3px;" class="btn btn-default btn-xs clear_all_button btn-embossed"><span class="glyphicon glyphicon-remove"></span> Clear</button>
+        </div>    
+    </div>
+    
+    <div class="form-group">
+        <label for="tasks">Choose Tasks</label>
+        <select id="select_tasks" multiple="multiple" class="form-control multiselect multiselect-info" name="tasks" >
+            {% for task in tasks %}
+                <option value="{{task.id}}" class="tasks_option" {% if task in chosen_tasks %} selected {% endif %}>{{ task }}</option>
+            {% endfor %}
+        </select>
+        <div class="btn-group btn-group-xs">
+            <button type="button" data-type="tasks" style="margin-top:3px;" class="btn btn-default btn-xs select_all_button btn-embossed"><span class="glyphicon glyphicon-ok"></span> Select All</button>
+            <button type="button" data-type="tasks" style="margin-top:3px; margin-left:3px;" class="btn btn-default btn-xs clear_all_button btn-embossed"><span class="glyphicon glyphicon-remove"></span> Clear</button>
+        </div>  
+    </div>
+   
+    {% if object.is_offline %}
+    <div class="form-group">
+        <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left:5px;">{% if mode == "update_session" %}Edit{% else %}Create{% endif %}</button>
+        <a class="btn btn-danger pull-left btn-embossed" style="margin-right:5px;" href="{% if mode == "update_session" %}{% url 'view_offline_session' object.id %}{% else %}{% url 'view_offline_course' object.id %}{% endif %}">Cancel</a>
+    </div>
+    {% else %}
+        <div class="form-group">
+            <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left:5px;">{% if mode == "update_session" %}Edit{% else %}Create{% endif %}</button>
+            <a class="btn btn-danger pull-left btn-embossed" style="margin-right:5px;" href="{% if mode == "update_session" %}{% url 'view_session' object.id %}{% else %}{% url 'view_course' object.id %}{% endif %}">Cancel</a>
+        </div>
+    {% endif %}
+    </div>
+</form>
+{% endblock %}
+{% block script %}
+    <script src="{% static 'js/bootstrap-multiselect.js' %}"></script>
+    <script src="{% static 'js/moment.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap-datetimepicker.min.js' %}"></script>
+
+    <script>
+        $(document).ready(function() {            
+            
+            $('#start_time').datetimepicker({
+                format: 'DD/MM/YYYY HH:mm',
+            });
+
+            $("#select_slides").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: "Select slides"
+            });
+
+            $("#select_resources").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: "Select resources"
+            });
+
+            $("#select_tasks").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: "Select tasks"
+            });
+
+            $("#select_quiz").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: {
+                    id: "-1",
+                    placeholder: "Select a quiz"
+                }
+            });
+
+
+            <!--Select all slides-->
+            $(".select_all_button").on("click", function() {
+                var type = $(this).data("type");               
+                var values = $("#select_" + type + ">option").map(function () {
+                    return $(this).val();
+                });
+                $("#select_" + type).val(values).trigger("change");
+            });
+
+            <!--Clear all slides-->
+            $(".clear_all_button").on("click", function() {
+                var type = $(this).data("type");
+                $("#select_" + type).val("").trigger("change");
+            });
+
+            $('#session_required').bootstrapSwitch();
+
+            $('#session_required').on('switchChange.bootstrapSwitch', function(event, state) {
+                var value = $(this).val();
+                if (value === 'False') {
+                    $(this).val('True');
+                }
+                else {
+                    $(this).val('False');
+                }
+            });
+        });        
+    </script>
+{% endblock %}

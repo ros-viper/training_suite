@@ -1,0 +1,42 @@
+{% extends "basis.html"  %}
+
+{% block nav %}
+    {% include 'nav.html' with active='polls' %}
+{% endblock %}
+
+{% load polls_custom_tags %}
+
+{% block title %}
+Polls
+{% endblock %}
+
+{% block content %}
+    <h2><i class="fa fa-bar-chart" aria-hidden="true"></i> Polls</h2>
+    <table class="table">
+      <thead class="thead-default">
+        <tr>
+          <th>Poll</th>
+          <th>Course</th>
+          <th>Questions</th>
+          <th>Submitted</th>
+          <th>Deadline</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in object_list %}
+        <tr>{% get_is_submitted_by_user as  is_submitted_by_user %}
+          <td><a class="alert-link" href="{% url 'poll_mode' p.id %}">{{ p.name }}</a></td>
+          <td>{% for course in p.course.all %} {{ p.course.all.0.name }} {% if not forloop.last %}, {% endif %} {% endfor %} </td>
+          <td>{{ p.question_set.count }} (~ {{ p.question_set.count | minutes }} min{{ p.question_set.count | minutes | pluralize }}) </td>
+          <td>
+              {% if request.user.trainer %} {{ p.submitted_results }}
+              {% else %} <i class="fa fa-{% if is_submitted_by_user %}check-{% endif %}square-o" aria-hidden="true"></i>{% endif %}
+          </td>
+          
+          <td>{% if p.deadline %} {{ p.deadline }} {% else %} - {% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+{% endblock %}

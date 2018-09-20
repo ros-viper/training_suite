@@ -1,0 +1,216 @@
+{% extends "basis.html" %}
+
+{% load custom_tags %}
+{% load static from staticfiles %}
+
+{% block title %}
+Session #{{ object.number }}
+{% endblock %}
+
+{% block nav %}
+    {% include 'nav.html' with active='sessions' %}
+{% endblock %}
+
+{% block script %}
+<script>
+    $(':checkbox').radiocheck();
+
+    $('#attendance_btn').on('click', function() {
+        var attendances = [];
+        $(":checked").each(function(index){
+            attendances.push($(this).data('student-id'));
+        });
+        console.log(attendances);
+        var body = {'csrfmiddlewaretoken': "{{ csrf_token }}", "attendances": attendances};
+
+{#                $('#submit_order_button').attr('disabled', true);#}
+{#                $('#submit_order_button_text').text('Updating...');#}
+        $.post("{% url 'update_attendance' object.id %}", body, function(data) {
+            if (data === "OK"){
+                $("#attendance_modal").modal('hide');
+            };
+        });
+    });
+
+</script>
+{% endblock %}
+
+{% block content %}
+    <!-- BREADCRUMBS -->
+        <ol class="breadcrumb" style="margin-bottom: 5px;">
+          <li><a href="{% url 'root' %}"><span class="fui-arrow-left"></span> Courses</a></li>
+          <li><a href="{% if object.is_offline %}{% url 'view_offline_course' object.course.id %}{% else %}{% url 'view_course' object.course.id %}{% endif %}"><span class="glyphicon glyphicon-{% if object.is_offline %}book{% else %}blackboard{% endif %}" aria-hidden="true"></span>&nbsp;  {{ object.course.name }}</a></li>
+          <li class="active">{{ object.name }}</li>
+        </ol>
+
+
+    {% if object.description %}
+        <h2 class="display-4"><span>{{ object.name }}</span>
+            {% if object.start_time %}<small>{{ object.start_time }}</small>{% endif %}
+            {% if request.user.trainer %}
+                <a class="btn btn-success pull-right btn-embossed" href="{% if object.is_offline %}{% url 'edit_offline_session' object.id %}{% else %}{% url 'update_session' object.id  %}{% endif %}"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>&nbsp;&nbsp; Edit session</a>
+                {% if not object.is_offline %}<a class="btn btn-warning pull-right btn-embossed" style="margin-right: 7px;" data-toggle="modal" data-target="#attendance_modal"><span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>&nbsp;&nbsp; Attendance</a>{% endif %}
+            {% endif %}
+        </h2>
+        <div class="panel panel-default">
+            <div class="panel-body" style="background:#eaebe7; word-wrap: break-word;">
+                {{ object.description | safe | linebreaksbr }}
+            </div>
+        </div>
+    {% endif %}
+    {% if object.slides.count %}
+        <div class="panel panel-default">
+          <div class="panel-heading">Slides <a data-toggle="modal" style="cursor: pointer;" data-target="#myModal" class="pull-right">Help</a></div>
+          <div class="panel-body">
+              {% for s in chosen_slides %}
+              <a class="btn btn-success btn-lg btn-embossed" style="padding: 5px 20px 5px 20px; vertical-align: middle; margin-bottom: 5px;" target="_blank" href="{{ s.path }}"><span style="font-size: x-large"><i class="fa fa-caret-square-o-right" aria-hidden="true"></i> {{ s.name }}</span><br/>
+                      <span style="font-size: small">{{ s.comment }}</span></a><br>
+              {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if chosen_resources %}
+        <div class="panel panel-default">
+          <div class="panel-heading">Resources</div>
+
+          <!-- Table -->
+          <table class="table">
+{#              <thead class="thead-default">#}
+{#                <tr>#}
+{#                  <th>Name</th>#}
+{#                  <th>Type</th>#}
+{#                </tr>#}
+{#              </thead>#}
+              <tbody>
+                {% for r in chosen_resources %}
+                <tr>
+                  <td><a class="btn btn-info btn-embossed" href="/download/{{ r.id }}"><span class="glyphicon glyphicon-{% if r.url %}share{% else %}{% if r.resource_type == 'BOOK' %}book{% endif %}paperclip{% endif %}"></span>&nbsp;&nbsp;{{ r.name }}</a></td>
+                  <td>{{ r.comment }}</td>
+                  <td class="hidden-xs hidden-sm">{{ r.get_resource_type_display }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+        </div>
+
+    {% endif %}
+
+    {% if chosen_tasks %}
+
+        <div class="panel panel-default">
+          <div class="panel-heading">Hometasks</div>
+
+          <!-- Table -->
+          <table class="table">
+{#              <thead class="thead-default">#}
+{#                <tr>#}
+{#                  <th style="width: 30px;">#</th>#}
+{#                  <th>Name</th>#}
+{#                  <th>Solved?</th>#}
+{#                  <th>Comments</th>#}
+{#                </tr>#}
+{#              </thead>#}
+              <tbody>
+                {% for task in chosen_tasks %}
+                <tr>
+                  <td style="width: 30px;">{{ forloop.counter }}</td>
+                  <td><a href="/task/{{ task.id }}" class="alert-link">{{ task.name }}</a></td>
+                  <td>{% task_is_solved_by as solved %}{% if solved %}Solved{% else %}Not solved{% endif %}</td>
+                  <td>{% comments_number as comments %}{% if comments > 0 %} {{ comments }} comment{{ comments | pluralize }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+        </div>
+
+    {% endif %}
+
+
+    <!-- HELP MODAL -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">Slideshow help</h4>
+          </div>
+          <div class="modal-body">
+              <h4>What are these slides</h4>
+              <p>By clicking on slideshow button you'll go to special HTML page with Javascript-powered webapp for looking presentation as slide show in the same way as it was shown during sessions.</p>
+              <p>You can easily go the next page via <mark>SPACE</mark> and <mark>arrows</mark>. Press <mark>?</mark> for in-slideshow help screen.</p>
+              <h4>Main keys/actions while viewing slides:</h4>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>N , SPACE</td>
+                        <td>Next slide</td>
+                    </tr> <tr>
+                        <td>P</td>
+                        <td>Previous slide</td>
+                    </tr> <tr>
+                        <td>← , H</td>
+                        <td>Navigate left</td>
+                    </tr> <tr>
+                        <td>→ , L</td>
+                        <td>Navigate right</td>
+                    </tr> <tr>
+                        <td>F</td>
+                        <td>Fullscreen</td>
+                    </tr><tr>
+                        <td>?</td>
+                        <td>Help</td>
+                    </tr>
+                </tbody>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default btn-embossed" data-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if not object.is_offline %}
+    <!-- Attendance Modal -->
+    <div class="modal fade" id="attendance_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">Attendance List</h4>
+          </div>
+          <div class="modal-body">
+          <div class="alert alert-info">
+              <p>Check all students who were present on session</p>
+              {% if object.start_time %}<p>Date/time: <strong>{{ object.start_time }}</strong></p>{% endif %}</div>
+            <table class="table table-crossed" style="margin-bottom: 0px;">
+                {% for student in object.course.student_set.all %}
+                <tr><td>{{ student.name }}</td>
+                <td>
+{#                    <input type="checkbox" value="" data-toggle="checkbox">#}
+                    <label class="checkbox" for="checkbox{{ student.pk }}">
+                        <input type="checkbox" data-toggle="checkbox" value="" id="checkbox{{ student.pk }}" data-student-id="{{ student.pk }}" {% attendance_checked %}>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                      </label>
+                </td></tr>
+                {% endfor %}
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default btn-embossed" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary btn-embossed" id="attendance_btn">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+
+{% endblock %}

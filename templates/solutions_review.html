@@ -1,0 +1,68 @@
+{% extends "basis.html"  %}
+
+{% block nav %}
+    {% include 'nav.html'%}
+{% endblock %}
+
+{% block title %}
+    Solution for task {{ object.name }}
+{% endblock %}
+
+{% block content %}
+    <h3><a href="{% url 'reviews' %}" style="margin-right: 20px;"><i class="fa fa-long-arrow-left"></i></a>
+        Solutions of task 
+        <button type="button" class="btn btn-lg btn-info" data-placement="bottom" data-toggle="popover"
+            data-html=true data-content='{{ object.content }}'>{{ object.name }}
+        </button>
+        <select class="form-control select select-primary select-block mbl pull-right">
+            <option data-id="all_courses">All courses</option>
+            {% for course in object.courses  %}
+              <option data-id="{{ course.id }}">{{ course.name }}</option>
+            {% endfor %}
+        </select>
+    </h3>
+    <!--<h4>Session #{{ object.sessions.number }}</h4>-->
+
+    <table class="table">
+      <thead class="thead-default">
+        <tr>
+          <th>Student</th>
+          <th>Course</th>
+          <th>Committed at</th>
+          <th>Submitted?</th>
+          <th>Review</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in object_list %}
+        <tr class="course {% for c in s.author.courses.all %}course_{{ c.id }} {% endfor %}">
+          <td>{% if s.favorited %}<i class="fa fa-star" style="color: #f1d213;" aria-hidden="true"></i>&nbsp; {% endif %}<a href="{% url 'view_solution' s.id %}">{{ s.author.name }}</a></td>
+          <td>{% for c in s.author.courses.all %} {{ c.name }}{% if not forloop.last %},{% endif %} {% endfor %} </td>
+          <td>{{ s.committed_at }}</td>
+          <td>{{ s.committed }}</td>
+          <td>...</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    $(document).ready(function() {
+        $("select").select2({dropdownCssClass: 'dropdown-inverse'});
+
+        $("select").change(function() {
+            var course_id = $(this).find(':selected').data('id');
+            if (course_id == "all_courses") {
+                $(".course").show();
+            }
+            else {
+                $(".course").hide();
+                $(".course_" + course_id).show();
+            };
+        });
+    });
+</script>
+{% endblock %}

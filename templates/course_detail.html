@@ -1,0 +1,109 @@
+{% extends "basis.html" %}
+
+{% load custom_tags %}
+
+{% block title %}
+{{ object.name }}
+{% endblock %}
+
+{% block nav %}
+    {% include 'nav.html' with active='courses' %}
+{% endblock %}
+
+
+
+{% block content %}
+
+<!-- BREADCRUMBS -->
+        <ol class="breadcrumb" style="margin-bottom: 5px;">
+          <li><a href="{% url 'root' %}"><span class="fui-arrow-left"></span> Courses</a></li>
+            <li class="active"><span class="glyphicon glyphicon-{% if object.is_offline %}book{% else %}blackboard{% endif %}" aria-hidden="true"></span>&nbsp; {{ object.name }}</li>
+        </ol>
+    <div class="row">
+        <div class="col-md-12">
+            <h2><span class="glyphicon glyphicon-{% if object.is_offline %}book{% else %}blackboard{% endif %}" aria-hidden="true"></span>&nbsp; Course {{ object.name }}
+                {% if request.user.trainer %}
+                    <a style="margin-left: 5px;" class="btn btn-primary btn-embossed pull-right" href="{% if object.is_offline %}{% url 'edit_offline_course' object.pk %}{% else %}{% url 'edit_course' object.pk %}{% endif %}"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> &nbsp;Edit course</a>
+                    <a class="btn btn-success pull-right btn-embossed" href="{% if object.is_offline %}{% url 'create_offline_session' object.pk  %}{% else %} {% url 'create_session' object.pk  %}{% endif %}"><span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span> Create session</a>
+                {% endif %}
+            </h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-body" style="margin-bottom: -15px;">
+                <p>Track{{ object.tracks.all|pluralize }}: {% for track in object.tracks.all %}
+                    <span class="label label-danger" style="background-color: {{ track.color }};">{{ track.short_name }}</span>
+                {% endfor %}
+                <span style="margin-left:30px;">Active: <span class="{% if object.active %}fui-check{% else %}fui-cross{% endif %}"></span></span>
+                <span style="margin-left:30px;">Start date: {{ object.start_date }}</span>
+                {% if object.end_date %}
+                    <span style="margin-left:30px;">End date: {{ object.end_date }}</span>
+                {% endif %}
+                </p>
+                {% if object.is_offline %}
+                    <p>Author: <strong> {{ object.author.name }}</strong></p>
+                {% else %}
+                    <p>Trainer{{ object.trainers.all|pluralize }}: <strong>{% for t in object.trainers.all %}
+                        {{ t.name }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    </strong></p>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <table class="table">
+      <thead class="thead-default">
+        <tr>
+            <th class="hidden-sm hidden-xs">#</th>
+            <th>Session</th>
+            {% if not object.is_offline %}<th class="hidden-sm hidden-xs">Start time</th>{% endif %}
+            {% if object.is_offline %}
+                <th class="hidden-sm hidden-xs">Required</th>
+                {% if request.user.student %}
+                    <th class="hidden-sm hidden-xs">Completed</th>
+                {% endif %}
+            {% endif %}
+            <th class="hidden-sm hidden-xs">Slides</th>
+            <th class="hidden-sm hidden-xs">Resources</th>
+            <th class="hidden-md hidden-lg">All&nbsp;Resources</th>
+            <th><span class="hidden-sm hidden-xs">Hometasks</span><span class="hidden-lg hidden-md">Tasks</span></th>
+            {% if object.is_offline %}<th class="hidden-sm hidden-xs">Quiz</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+            <tr {% if s == current_session %}style="font-weight: bold"{% endif %}>
+                <td class="hidden-sm hidden-xs">{% if s.is_offline %}{{ s.order }}{% else %}{{ forloop.counter }}{% endif %}</td>
+{#              #}
+            {% if object.is_offline %}
+                <td>{% if s in allowed_sessions %}<a class="alert-link" href="{% url 'view_offline_session' s.id %}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}</td>
+            {% else %}
+                <td><a class="alert-link" href="{% url 'view_session' s.id %}">{{ s.name }}</a></td>
+            {% endif %}
+                {% if not object.is_offline %}<td class="hidden-sm hidden-xs">{{ s.start_time }}</td>{% endif %}
+                {% if object.is_offline %}
+                    <td class="hidden-sm hidden-xs"><span class="{% if s.required %}fui-check{% else %}fui-cross{% endif %}"></td>
+                    {% if request.user.student %}
+                        {% is_passed s.id as is_passed %}
+                        <td class="hidden-sm hidden-xs"><span class="{% if is_passed %}fui-check{% else %}fui-cross{% endif %}"></span></td>
+                    {% endif %}
+                {% endif %}
+                <td class="hidden-sm hidden-xs">{{ s.slides.all.count }}</td>
+                <td class="hidden-sm hidden-xs">{% if object.is_offline %}{{ s.resources.all.count }}{% else %}{{ s.resource_set.all.count}}{% endif %}</td>
+                <td class="hidden-md hidden-lg">{% if object.is_offline %}{{ s.resources.all.count|add:s.slides.all.count }}{% else %}{{ s.resource_set.all.count|add:s.slides.all.count}}{% endif %}</td>
+                <td>{% if object.is_offline %}{{ s.tasks.all.count }}{% else %}{{ s.task_set.all.count }}{% endif %}</td>
+                {% if object.is_offline %}<td>{% if s.quiz != None and s in allowed_sessions %}<a class="alert-link disabled" href="{% url 'quiz:quiz_mode' s.quiz.id %}">{{ s.quiz }}</a>{% else %}{{ s.quiz }}{% endif %}</td>{% endif %}
+            </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+    <br>
+    <center>
+      <script async defer src="https://slack-botter.herokuapp.com/slackin.js?large"></script>
+    </center>
+
+{% endblock %}

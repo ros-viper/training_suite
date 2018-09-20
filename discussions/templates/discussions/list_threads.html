@@ -1,0 +1,70 @@
+{% extends "basis.html" %}
+
+{% block nav %}
+    {% include "nav.html" with active='discussions' %}
+{% endblock %}
+
+
+{% block content %}
+    <h2><i class="fa fa-comments-o" aria-hidden="true"></i> Discussions
+        <!-- Trigger the modal with a button -->
+    <button type="button" id="openModal" class="btn btn-success pull-right btn-embossed" data-toggle="modal" data-target="#createThread">Create thread</button>
+    </h2>
+
+    {% if object_list %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Author</th>
+                    {% comment "For future if session/course info will be needed" %} <th>Session</th>
+                    <th>Course</th>{% endcomment %}
+                    <th>Last Message</th>
+                </tr>
+            </thead>
+            <tbody  class="table-striped">
+                {% for thread in object_list %}
+                    <tr>
+                        <td><a href="{% url 'discussions:thread_detail' thread.id %}">{{ thread.subject }}</a></td>
+                        <td><span style="white-space:nowrap;">{{ thread.author.first_name }} {{ thread.author.last_name }}</span> <br> <small>{{ thread.date_added }}</small></td>
+                        {% comment "For future if session/course info will be needed" %} <td>{{ thread.session }}</td>
+                        <td>{{ thread.course.name }}</td>{% endcomment %}
+                        {% if thread.discussionmessage_set.all %}
+                            <td><span style="white-space:nowrap;">{{ thread.discussionmessage_set.all.last.author.first_name }} {{ thread.discussionmessage_set.all.last.author.last_name }}</span> <br> <small>{{ thread.discussionmessage_set.all.last.date_added }}</small></td>
+                        {% else %}
+                            <td>No messages</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        No threads available
+    {% endif %}
+
+    <!-- Modal -->
+    <div class="modal fade" id="createThread" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <form method="POST" role="form"> {% csrf_token %}
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">Create new thread</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <input class="form-control" rows="3" name="thread_subject" id="threadSubject" placeholder="Enter subject"/>
+                            <textarea style="margin-top: 3px;" type="text" class="form-control" rows="3" name="thread_content" placeholder="Enter initial message"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left: 5px;"><span class="glyphicon glyphicon-ok"></span> Create </button>
+                        <button type="button" class="btn btn-danger btn-default pull-right btn-embossed" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

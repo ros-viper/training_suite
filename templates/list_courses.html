@@ -1,0 +1,278 @@
+{% extends "basis.html"  %}
+
+{% load static from staticfiles %}
+
+{% block nav %}
+    {% include 'nav.html'%}
+{% endblock %}
+
+{% block style %}
+    <style>
+        .bootstrap-switch>div>span {
+            width: 60px;
+        }
+    </style>
+    <link href="{% static 'css/bootstrap-multiselect.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap-datetimepicker.min.css' %}" rel="stylesheet">
+
+{% endblock %}
+
+{% block title %}
+Courses
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-sm-11">
+            <h2><i class="fa fa-graduation-cap fa-3"></i> Courses
+                <input type="checkbox" style="width:300px;" checked data-toggle="switch" data-on-text="Active" data-off-text="All" id="active_switch" />
+                {% if user.trainer %}
+                    <span class="pull-right">
+                        <button style="margin-top: 22px;" type="button" id="openModal" class="btn btn-success pull-right btn-embossed" data-toggle="modal" data-target="#createCourse"><span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span> &nbsp;Create course</button>
+                    </span>
+                {% endif %}
+            </h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <table class="table">
+              <thead class="thead-default">
+                <tr>
+                  <th>Course</th>
+                  <th>Trainer</th>
+                  <th>Tracks</th>
+                  <th class="hidden-xs">Start date</th>
+                  <th class="hidden-xs">Students</th>
+                  <th class="hidden-xs">Active</th>
+                  {% if user.trainer %}<th>Edit</th>{% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in object_list %}
+                    <tr {% if c.active %}class="active_course"{% else %}class="inactive hidden" {% endif %}>
+                      <td><a class="alert-link" href="/course/{{ c.id }}"><span class="glyphicon glyphicon-blackboard" aria-hidden="true"></span>&nbsp;&nbsp; {{ c.name }}</a></td>
+                      <td>{{ c.trainers.all.0.name }}</td>
+                      <td>
+                          {% for track in c.tracks.all %}
+                              <span class="label label-danger" style="background-color: {{ track.color }};">{{ track.short_name }}</span>
+                          {% endfor %}
+                      </td>
+                      <td class="hidden-xs">{{ c.start_date }}</td>
+                      <td class="hidden-xs">{{ c.student_set.count }}</td>
+                      <td class="hidden-xs"><span class="{% if c.active %}fui-check{% else %}fui-cross{% endif %}"></span></td>
+                      {% if user.trainer %}<td><a class="btn btn-primary btn-embossed btn-xs" href="{% url 'edit_course' c.id %}"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> &nbsp;Edit course</a></td>{% endif %}
+                    </tr>
+                {% endfor %}
+                {% for c in offline_courses %}
+                    <tr {% if c.active %}class="active_course"{% else %}class="inactive hidden" {% endif %}>
+                      <td><a class="alert-link" href="{% url 'view_offline_course' c.id %}"><span class="glyphicon glyphicon-book" aria-hidden="true"></span>&nbsp;&nbsp; {{ c.name }}</a></td>
+                      <td>{{ c.author.name }}</td>
+                      <td>
+                          {% for track in c.tracks.all %}
+                              <span class="label label-danger" style="background-color: {{ track.color }};">{{ track.short_name }}</span>
+                          {% endfor %}
+                      </td>
+                      <td class="hidden-xs">{{ c.start_date }}</td>
+                      <td class="hidden-xs">{{ c.student_set.count }}</td>
+                      <td class="hidden-xs"><span class="{% if c.active %}fui-check{% else %}fui-cross{% endif %}"></span></td>
+                      {% if user.trainer %}<td><a class="btn btn-primary btn-embossed btn-xs" href="{% url 'edit_offline_course' c.id %}"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> &nbsp;Edit course</a></td>{% endif %}
+                    </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+        {% if user_stats %}
+            <h2><i class="fa fa-line-chart" aria-hidden="true"></i> User stats</h2>
+            <table class="table">
+              <tbody>
+                <tr>
+                  <td>Assigned tasks:</td>
+                  <td>{{ user_stats.tasks_total }}</td>
+                </tr><tr>
+                  <td>Completed tasks:</td>
+                  <td>{{ user_stats.tasks_done }}</td>
+                </tr><tr>
+                  <td>Tasks in progress:</td>
+                  <td>{{ user_stats.tasks_in_progress }}</td>
+                </tr><tr>
+                  <td>Comments received:</td>
+                  <td>{{ user_stats.comments }}</td>
+                </tr>
+              </tbody>
+            </table>
+        {% elif trainer_stats %}
+            <h2><i class="fa fa-line-chart" aria-hidden="true"></i> Trainer stats</h2>
+            <table class="table">
+              <tbody>
+                <tr>
+                  <td>Active courses:</td>
+                  <td>{{ trainer_stats.active_courses }}</td>
+                </tr><tr>
+                  <td>Students count:</td>
+                  <td>{{ trainer_stats.current_students }}</td>
+                </tr><tr>
+                  <td>Comments written:</td>
+                  <td>{{ trainer_stats.comments_written }}</td>
+                </tr>
+              </tbody>
+            </table>
+        {% else %}
+            <h3><i class="fa fa-line-chart" aria-hidden="true"></i> You are admin of the site, right? :)</h3>
+        {% endif %}
+        </div>
+        <div class="col-sm-6">
+            <h2><i class="fa fa-pie-chart" aria-hidden="true"></i> Global stats</h2>
+            <table class="table">
+              <tbody>
+                <tr>
+                  <td>Total users:</td>
+                  <td>{{ global_stats.total_users }}</td>
+                </tr><tr>
+                  <td>Hometasks:</td>
+                  <td>{{ global_stats.hometasks }}</td>
+                </tr><tr>
+                  <td>Solutions:</td>
+                  <td>{{ global_stats.solutions }}</td>
+                </tr><tr>
+                  <td>Comments:</td>
+                  <td>{{ global_stats.comments }}</td>
+                </tr>
+              </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="createCourse" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <form method="POST" role="form"> {% csrf_token %}
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">Create new course</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="course_name">Name</label>
+                            <input class="form-control" required rows="1" name="course_name" id="course_name" placeholder="Enter name"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="startDateTimePicker">Start Date</label>
+                            <div class='input-group date' id='datetimepicker1'>
+                                <input type='text' class="form-control" id="startDateTimePicker" name="start_date" />
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="endtDateTimePicker">End Date</label>
+                            <div class='input-group date' id='datetimepicker2'>
+                                <input type='text' class="form-control" id="endtDateTimePicker" name="end_date" />
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="course_active">Is Active?</label>
+                            <div class="bootstrap-switch-square">
+                                <input type="checkbox" value="False" data-toggle="switch" name="course_active" id="course_active" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="offline_course">Is Offline?</label>
+                            <div class="bootstrap-switch-square">
+                                <input type="checkbox" value="False" data-toggle="switch" name="offline_course" id="offline_course" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="tracks">Tracks</label>
+                            <select id="select_tracks" required multiple="multiple" class="form-control multiselect multiselect-info" name="tracks" title="Please select">
+                                {% for track in tracks %}
+                                    <option value="{{track.id}}" selected class="tracks_option">{{ track }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group" id="additional_trainers">
+                            <label for="select_trainers">Additional trainers</label>
+                            <select id="select_trainers" multiple="multiple" class="form-control multiselect multiselect-info" name="trainers" title="Please select">
+                                {% for trainer in additional_trainers %}
+                                    <option value="{{ trainer.id }}" class="trainers_option">{{ trainer }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success pull-right btn-embossed" style="margin-left: 5px;"><span class="glyphicon glyphicon-ok"></span> Create </button>
+                        <button type="button" class="btn btn-danger btn-default pull-right btn-embossed" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'js/bootstrap-multiselect.js' %}"></script>
+    <script src="{% static 'js/moment.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap-datetimepicker.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            $('#active_switch').bootstrapSwitch();
+            $('#active_switch').on('switchChange.bootstrapSwitch', function(event, state) {
+                if (state == true) {
+                    $(".inactive").addClass("hidden");
+                }
+                else {
+                    $(".inactive").removeClass("hidden");
+                }
+            });
+            $('#datetimepicker1').datetimepicker({
+                format: 'DD/MM/YYYY',
+            });
+            $('#datetimepicker2').datetimepicker({
+                format: 'DD/MM/YYYY',
+            });
+
+            $("#select_tracks").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: "Select tracks"});
+
+            $("#select_trainers").select2({dropdownCssClass: 'dropdown-inverse',
+                placeholder: "Select trainers"});
+
+            $('#course_active').bootstrapSwitch();
+            $('#offline_course').bootstrapSwitch();
+
+            $('#course_active').on('switchChange.bootstrapSwitch', function(event, state) {
+                var value = $(this).val();
+                if (value === 'False') {
+                    $(this).val('True');
+                }
+                else {
+                    $(this).val('False');
+                }
+                });
+
+            $('#offline_course').on('switchChange.bootstrapSwitch', function(event, state) {
+                var value = $(this).val();
+                if (value === 'False') {
+                    $(this).val('True');
+                    $('#additional_trainers').addClass('hidden')
+                }
+                else {
+                    $(this).val('False');
+                    $('#additional_trainers').removeClass('hidden')
+                }
+                });
+
+        });
+    </script>
+{% endblock %}

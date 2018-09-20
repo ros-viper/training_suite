@@ -1,0 +1,56 @@
+{% extends "basis.html" %}
+
+{% load markdown_deux_tags %}
+
+
+{% block nav %}
+    {% include "nav.html" with active='discussions' %}
+{% endblock %}
+
+{% block head_scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.js"></script>
+
+{% endblock %}
+
+{% block content %}
+<h2>{{ user.first_name }} {{ user.last_name }} <small>{{ role }}</small></h2>
+<h4>Email: <small>{{ user.email }}</small></h4>
+<h4>Courses: 
+    {% for course in courses %}
+        <small>{{ course.name }}{% if not forloop.last %},{% endif %}</small>
+    {% empty %}
+        <small>No assigned courses</small>
+    {% endfor %}
+<h4>
+<h4>Completed Tasks: <small>{{ solutions_number }}</small></h4>
+    {% for message in messages %}
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <p style="display:inline; "><a href="{% url 'discussions:thread_detail' message.thread.id %}">{{ message.thread.subject }}</a></p>
+                <p align="right" style="margin-bottom:0px;"><i>  {{ message.date_added }}</i></p>
+            </div>
+            <div class="panel-body">
+                {% if message.target %}
+                    <div class="panel panel-default" >
+                        <div class="panel-heading" style="background-color: #EEEEEE;">
+                            <p style="display:inline; "><i>{{ message.target.author.first_name }} {{ message.target.author.last_name }} wrote on {{ message.target.date_added }}</i></p>
+                        </div>
+                        <div class="panel-body" style="background-color: #EEEEEE;">
+                            <div id="content__{{ forloop.counter }}">{{ message.target.content|safe }}</div>
+                            <script>
+                                document.getElementById('content__{{ forloop.counter }}').innerHTML =
+                                    marked(document.getElementById('content__{{ forloop.counter }}').innerHTML);
+                            </script>
+                        </div>
+                    </div>
+                {% endif %} 
+                <div id="content__{{ forloop.counter }}">{{ message.content|safe }}</div>
+                <script>
+                    document.getElementById('content__{{ forloop.counter }}').innerHTML =
+                        marked(document.getElementById('content__{{ forloop.counter }}').innerHTML);
+                </script>                       
+            </div>
+        </div>
+    {% endfor %}
+
+{% endblock %}

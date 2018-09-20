@@ -1,0 +1,59 @@
+{% extends "basis.html" %}
+
+{% load markdown_deux_tags %}
+
+{% load quiz_custom_tags %}
+
+{% block nav %}
+    {% include "nav.html" with active='polls' %}
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <!-- BREADCRUMBS -->
+        <ol class="breadcrumb" style="margin-bottom: 5px;">
+    {#      <li><a href="#">Dashboard</a></li>#}
+        <li><a href="{% url 'polls_list' %}">Polls</a></li>
+        <li class="active"> Poll "{{ object.name }}"</li>
+        </ol>
+        
+        
+        <div class="row">
+            <div class="col-sm-10">
+                <h1>{{object.name}}</h1>
+                <h3>Poll Results <small>({{ object.submittedresult_set.count }} user{{ object.submittedresult_set.count|pluralize }} submitted)</small></h3>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-10">
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th>Option</th>
+                            <th>Votes</th>
+                        </tr>
+                
+                    {% for question in object.question_set.all %}
+                        <tr>
+                            <td colspan="2" class="active" style="font-weight : bold;">
+                               {{ forloop.counter }}.  {{ question.content }}
+                            </td>
+                        </tr>
+                            
+                        {% for option in question.option_set.all %}
+                        <tr>
+                            <td>
+                                {{ option.content }} 
+                            </td>
+                            <td>
+                                {{ option.votes }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+            </div>
+        </div>
+        
+    </div>
+{% endblock %}

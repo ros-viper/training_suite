@@ -1,0 +1,107 @@
+{% extends "basis.html" %}
+
+{% block nav %}
+    {% include "nav.html" with active='polls' %}
+{% endblock %}
+
+{% block content %}
+    <form method="POST" class="form"> {% csrf_token %}
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-xs-10">
+                    <h3>{{ object.name }}</h3>
+                </div>
+                <div class="col-xs-10 col-sm-offset-8" id="timer">
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <div class="col-xs-10">
+                        {% for question in object.question_set.all %}
+                        <div class="panel panel-default" id="question_{{question.id}}" style="display: {% if forloop.first %}block{% else %}none{% endif %}">
+                            <div class="panel-heading">
+                                {% if forloop.revcounter0 == 0 %}
+                                    Question {{ forloop.counter }} (final)
+                                {% else %}
+                                    Question <b>{{ forloop.counter }}</b> / {{ object.question_set.all.count }}
+                                {% endif %}
+                            </div>
+                            <div class="panel-body">                               
+                                <label class="control-label">{{ question.content|safe }}</label>
+                            </div>
+                                {% for option in question.option_set.all %}                                    
+                                    <div class="panel-footer" style="cursor: pointer;" onclick="onInputChange({{ option.id }})">
+                                        <div class="{% if question.has_multiple_options %}checkbox{% else %}radio {% endif %}" >
+                                            <label>
+                                                <input onclick="onInputChange({{ option.id }})" type="{% if question.has_multiple_options %}checkbox{% else %}radio{% endif %}" name="{{ question.id }}" id="{{ option.id }}" value="{{ option.id }}">{{ option.content }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                {% if question.has_user_option %}
+                                    <div class="panel-footer" style="cursor: pointer;" onclick="onInputChange('usr_{{ question.id }}')">
+                                        <div class="input-group" style="margin-left: -10px;">
+                                            <span class="input-group-addon" style="background: none; border: none;">
+                                                <input onclick="onInputChange('usr_{{ question.id }}')" type="{% if question.has_multiple_options %}checkbox{% else %}radio{% endif %}" name="{{ question.id }}" id="usr_{{ question.id }}" value="usr">
+                                            </span>
+                                            <input type="text" class="form-control" name="usr_{{ question.id }}" placeholder="Enter your variant" >
+                                        </div>
+                                    </div>     
+                                {% endif %}
+                        </div>
+                        {% endfor %} 
+                    </div> 
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-sm-10">
+                        <label style="float:right;">
+                            <button class="btn btn-default next" style="display: none;" type="button" onclick="onNextClick()">Next question</button>
+                        </label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-10">
+                        <label style="float:right;"> <!-- Submit button !-->
+                            <button class="btn btn-primary submit" style="display: none;" type="submit">Submit</button>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}
+{% block script %}
+    <script>
+        var p = 0;
+        
+        var panels = $(".panel-default");
+        var submit = $(".submit");
+        var next = $(".next");
+        
+        var onInputChange = function (o_id) {
+            console.log("Trigg!!!")
+            var inp = $('#' + o_id);
+            if ( inp.is(':radio')) {
+                inp.prop('checked', true);        
+            } else {
+                inp.prop('checked', !inp.prop('checked'));
+            }
+            if (p == panels.length - 1){
+                $(submit).show();
+            } else {
+                $(next).show();
+            }
+        };
+        
+        var onNextClick = function () {
+            $(panels[p]).hide();
+            p += 1;
+            $(panels[p]).show();
+            $(next).hide();
+        };
+        
+        
+    </script>
+{% endblock %}

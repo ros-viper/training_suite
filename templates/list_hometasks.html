@@ -1,0 +1,39 @@
+{% extends "basis.html"  %}
+
+{%  load custom_tags %}
+
+{% block nav %}
+    {% include 'nav.html' with active="hometasks" %}
+{% endblock %}
+
+{% block title %}
+Hometasks
+{% endblock %}
+
+
+{% block content %}
+    <h2><i class="fa fa-sitemap fa-3"></i> All hometasks</h2>
+    <table class="table">
+      <thead class="thead-default">
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Solved?</th>
+          <th>Comments</th>
+{#          <th>Session / Course</th>#}
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in object_list %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td><a href="/task/{{ task.id }}" class="alert-link">{{ task.name }}</a></td>
+          <td>{% task_is_solved_by as solved %}{% if solved %}Solved{% else %}Not solved{% endif %}</td>
+          <td>{% comments_number as comments %}{{ comments }} comment{{ comments | pluralize }}</td>
+{#          <td>Session #{{ task.session.number }} ({{ task.session.short_description }})</td>#}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+{% endblock %}

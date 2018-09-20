@@ -1,0 +1,17 @@
+*.pyc
+.venv
+.idea
+.staticfiles/
+training_suite/__pycache*
+NOTES
+.pypy-venv
+staticfiles/*
+staticfiles.bak/
+.local
+converter.zip
+traning_suite_db_dump.json
+db
+db.sqlite3
+.vscode/
+certbot.log
+keys
